@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:pt="http://xmlns.jcp.org/jsf/passthrough">
+<h:head>
+    <title>Разборщик файлов тепловых отчетов</title>
+    <h:outputScript name="script.js" library="js"/>
+    <h:outputStylesheet name="style.css" library="css"/>
+</h:head>
+<h:body style="margin: 0;">
+    <h:form>
+        <!--        oncomplete="unsetWidth()"-->
+        <p:remoteCommand name="updateTree" action="#{uploadService.updateTreeData}" update="treeTable"/>
+        <p:remoteCommand name="checkUpdate" action="#{uploadService.checkUpdate}" />
+    </h:form>
+    <h:form id="upload" enctype="multipart/form-data">
+        <h:inputFile id="file" onchange="uploadFile()"
+                     pt:multiple="true" pt:directory="true" pt:webkitdirectory="true" pt:accept="text/plain" />
+    </h:form>
+    <div style="margin: 5px;">
+        <table style="width: 100%;">
+            <tr>
+                <td width="110">
+                    <label for="upload:file" class="custom-file-upload">
+                        <i class="fa fa-cloud-upload" /> Загрузка
+                    </label>
+                </td>
+                <td>
+                    <progress id="progressBar" value="0" max="100" style="width: 500px;" />
+                    <h3 id="status" style="margin: 0; display: inline;" />
+                    <i id="statusIcon" style="font-size: 1.2em"/>
+                    <p id="loaded_n_total" style="margin: 0;" />
+                </td>
+                <td width="130" align="right">
+                    <h:form>
+                        <p:commandButton value="Начать разбор" widgetVar="parseButton" onclick="PF('parseButton').disable();"
+                                         action="#{uploadService.parse}" />
+                    </h:form>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <h:form id="treeTable" style="margin: 5px;">
+<!--        <p:treeTable id="treeTableData" value="#{uploadService.root}" var="document" scrollable="true">-->
+<!--            <p:ajax event="expand" oncomplete="checkMargin()" />-->
+<!--            <p:ajax event="collapse" oncomplete="checkMargin()" />-->
+        <p:treeTable id="treeTableData" value="#{uploadService.root}" var="document">
+            <p:column id="treeTableName" headerText="Типы файлов/имена файлов">
+                <h:outputText value="#{document.name}" />
+            </p:column>
+            <p:column headerText="Размер" style="width: 200px; text-align: center;">
+                <p:outputPanel id="sizeColumn">
+                    <h:outputText rendered="#{uploadService.isSizeRender(document.size)}" value="#{uploadService.getOkParse(document.size)}" style="color: green;" />
+                    <h:outputText rendered="#{uploadService.isSizeRender(document.size)}" value=" / " />
+                    <h:outputText rendered="#{uploadService.isSizeRender(document.size)}" value="#{uploadService.getBadParse(document.size)}" style="color: red;" />
+                    <h:outputText rendered="#{uploadService.isSizeRender(document.size)}" value=" / " />
+                    <h:outputText rendered="#{uploadService.isSizeRender(document.size)}" value="#{uploadService.getAll(document.size)}" />
+                    <h:outputText rendered="#{!uploadService.isSizeRender(document.size)}" value="#{document.size}" />
+                </p:outputPanel>
+            </p:column>
+            <p:column headerText="Статус" style="width: 100px; text-align: center;">
+                <p:outputPanel id="iconColumn">
+                    <i class="#{uploadService.getStatusImage(document.status)}" style="font-size: 2em; color: #{uploadService.getColor(document.status)};"/>
+                </p:outputPanel>
+            </p:column>
+            <p:column headerText="Просмотр" style="width: 100px; text-align: center;">
+                <p:commandLink rendered="#{uploadService.checkRender(document.name)}"
+                                 ajax="false" value="Показать" action="#{uploadService.download(document.name)}" />
+            </p:column>
+            <p:column headerText="Управление" style="width: 100px; text-align: center;">
+                <p:outputPanel id="controlColumn">
+                    <p:commandLink rendered="#{uploadService.checkControlRender(document.status, document.name)}"
+                                   value="Связать" action="#{uploadService.save(document.name)}" />
+                </p:outputPanel>
+            </p:column>
+        </p:treeTable>
+    </h:form>
+    <h:form id="dialog">
+        <p:dialog header="Управление" widgetVar="dlg1" modal="true" resizable="false" width="700" height="335">
+            <p:inputTextarea rows="3" cols="30" value="#{uploadService.message}" readonly="true" style="width: 100%;" />
+            <table style="width: 100%;">
+                <tr>
+                    <td width="50%" valign="top">
+                        <h:outputLabel for="fileName" value="Имя файла: " />
+                        <h:outputText id="fileName" value="#{uploadService.fileName}" />
+                        <br/><br/>
+                        <h:outputLabel for="address" value="Адрес объекта: " />
+                        <h:outputText id="address" value="#{uploadService.address}" />
+                        <br/><br/>
+                        <h:outputLabel for="reportHeader" value="Заголовок отчета: " />
+                        <h:outputText id="reportHeader" value="#{uploadService.reportHeader}" />
+                    </td>
+                    <td width="50%">
+                        <p:inputText value="#{uploadService.searchText}" style="width: 100%;">
+                            <p:ajax event="keyup" update="searchList" listener="#{uploadService.loadNames}" />
+                            <p:ajax event="keydown" update="searchList" listener="#{uploadService.clear}" />
+                        </p:inputText>
+                        <p:orderList id="searchList" style="width: 100%;" value="#{uploadService.searchList}"
+                                     var="objectName" controlsLocation="none" itemLabel="#{objectName}" itemValue="#{objectName}" >
+                            <p:ajax event="select" listener="#{uploadService.onSelect}" />
+                        </p:orderList>
+                    </td>
+                </tr>
+            </table>
+            <f:facet name="footer">
+                <p:commandButton value="Ассоциировать" onstart="updateStatus()" action="#{uploadService.associate}" onclick="PF('dlg1').hide()" />
+            </f:facet>
+        </p:dialog>
+        <p:dialog header="Сообщение" widgetVar="dlg2" modal="true" resizable="false" width="400" height="80">
+            <p:inputTextarea rows="3" cols="30" value="#{uploadService.message}" readonly="true" style="width: 100%;" />
+        </p:dialog>
+        <p:dialog header="Управление" widgetVar="dlg3" modal="true" resizable="false" width="700" height="335">
+            <p:inputTextarea rows="3" cols="30" value="#{uploadService.message}" readonly="true" style="width: 100%;" />
+            <table style="width: 100%;">
+                <tr>
+                    <td width="50%" valign="top">
+                        <h:outputLabel for="fileName1" value="Имя файла: " />
+                        <h:outputText id="fileName1" value="#{uploadService.fileName}" />
+                        <br/><br/>
+                        <h:outputLabel for="address1" value="Адрес объекта: " />
+                        <h:outputText id="address1" value="#{uploadService.address}" />
+                        <br/><br/>
+                        <h:outputLabel for="reportHeader1" value="Заголовок отчета: " />
+                        <h:outputText id="reportHeader1" value="#{uploadService.reportHeader}" />
+                        <br/><br/>
+                        <h:outputLabel for="counterType" value="Тип теплосчетчика: " />
+                        <h:outputText id="counterType" value="#{uploadService.counterType}" />
+                    </td>
+                    <td width="50%">
+                        <p:orderList style="width: 100%;" value="#{uploadService.heatSystemList}"
+                                     var="heatSystem" controlsLocation="none" itemLabel="#{heatSystem}" itemValue="#{heatSystem}" >
+                            <p:ajax event="select" listener="#{uploadService.onSelectHeatSystem}" />
+                        </p:orderList>
+                    </td>
+                </tr>
+            </table>
+            <div style="text-align: center; font-weight: bold;">
+                <h:outputText rendered="#{uploadService.heatSystemList.isEmpty()}"
+                              value="На объекте отсутствуют слинкованные системы" />
+            </div>
+            <f:facet name="footer">
+                <p:commandButton value="Ассоциировать" onstart="updateStatus()" action="#{uploadService.associateHeatSystem}" onclick="PF('dlg3').hide()" />
+            </f:facet>
+        </p:dialog>
+    </h:form>
+<!--    <h:form rendered="{uploadService.showData}" id="parseData" style="margin: 5px;">-->
+<!--        <table>-->
+<!--            <tr>-->
+<!--                <td>-->
+<!--                    <h:outputLabel for="fileName" value="Имя файла"/>-->
+<!--                </td>-->
+<!--                <td colspan="3">-->
+<!--                    <p:inputText style="width: 100%;" id="fileName" value="{uploadService.showParseData.fileName}" />-->
+<!--                </td>-->
+<!--            </tr>-->
+<!--            <tr>-->
+<!--                <td>-->
+<!--                    <h:outputLabel for="address" value="Адрес"/>-->
+<!--                </td>-->
+<!--                <td colspan="3">-->
+<!--                    <p:inputText style="width: 100%;" id="address" value="{uploadService.showParseData.address}" />-->
+<!--                </td>-->
+<!--                <td>-->
+<!--                    <h:outputLabel for="reportType" value="Тип отчета"/>-->
+<!--                </td>-->
+<!--                <td>-->
+<!--                    <p:inputText id="reportType" value="{uploadService.showParseData.reportType}" />-->
+<!--                </td>-->
+<!--            </tr>-->
+<!--            <tr>-->
+<!--                <td>-->
+<!--                    <h:outputLabel for="startDate" value="Начальная дата"/>-->
+<!--                </td>-->
+<!--                <td>-->
+<!--                    <p:inputText id="startDate" value="{uploadService.showParseData.startDate}" />-->
+<!--                </td>-->
+<!--                <td>-->
+<!--                    <h:outputLabel for="endDate" value="Конечная дата"/>-->
+<!--                </td>-->
+<!--                <td>-->
+<!--                    <p:inputText id="endDate" value="{uploadService.showParseData.endDate}" />-->
+<!--                </td>-->
+<!--                <td>-->
+<!--                    <h:outputLabel for="counterType" value="Тип счетчика"/>-->
+<!--                </td>-->
+<!--                <td>-->
+<!--                    <p:inputText id="counterType" value="{uploadService.showParseData.counterType}" />-->
+<!--                </td>-->
+<!--                <td>-->
+<!--                    <h:outputLabel for="counterNumber" value="Номер счетчика"/>-->
+<!--                </td>-->
+<!--                <td>-->
+<!--                    <p:inputText id="counterNumber" value="{uploadService.showParseData.counterNumber}" />-->
+<!--                </td>-->
+<!--            </tr>-->
+<!--        </table>-->
+<!--    </h:form>-->
+    <h:inputHidden id="UUID" value="#{uploadService.uuid}" />
+</h:body>
+</html>
