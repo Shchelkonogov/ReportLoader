@@ -12,8 +12,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Сервлет для загрузки файлов на сервер приложений
+ */
 @WebServlet("/upload")
 @MultipartConfig
 public class UploadServlet extends HttpServlet {
@@ -28,6 +32,11 @@ public class UploadServlet extends HttpServlet {
         if (!uploadPath.exists() && !uploadPath.mkdirs()) {
                return;
         }
+
+        for (File oldFile: Objects.requireNonNull(uploadPath.listFiles())) {
+            Files.delete(oldFile.toPath());
+        }
+
         Part filePart = req.getPart("file[]");
         for (Part part: req.getParts().stream().filter(p -> filePart.getName().equals(p.getName())).collect(Collectors.toList())) {
             String fileName = Paths.get(part.getSubmittedFileName()).getFileName().toString();
