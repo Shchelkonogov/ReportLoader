@@ -1,29 +1,28 @@
+// Часть кода что бы не прыгал размер таблицы
 // window.addEventListener("load", function(){
 //     unsetWidth();
 // });
 
-function _(el) {
-    return document.getElementById(el);
-}
+// Общее количество файлов и количество файлов нужного формата
+let filesCount;
+let loadedFilesCount;
 
-var filesCount;
-var loadedFilesCount;
-
+// Функция загрузки файлов на сервер
 function uploadFile() {
     _("status").innerHTML = "Подготовка";
     _("statusIcon").setAttribute('class', 'pi pi-spin pi-spinner');
-    var filesLength=_("upload:file").files.length;
+    let filesLength = _("upload:file").files.length;
     filesCount = filesLength;
     loadedFilesCount = 0;
-    var formData = new FormData();
-    for(var i=0;i<filesLength;i++){
+    let formData = new FormData();
+    for(let i = 0; i < filesLength; i++){
         if (hasExtension(_("upload:file").files[i].name.toLowerCase(), ['.xml', '.pdf', '.html'])) {
             formData.append("file[]", _("upload:file").files[i]);
             loadedFilesCount++;
         }
     }
     formData.append("UUID", _("UUID").value);
-    var ajax = new XMLHttpRequest();
+    let ajax = new XMLHttpRequest();
     ajax.upload.addEventListener("progress", progressHandler, false);
     ajax.addEventListener("load", completeHandler, false);
     ajax.addEventListener("error", errorHandler, false);
@@ -33,22 +32,20 @@ function uploadFile() {
 }
 
 function progressHandler(event) {
-    _("loaded_n_total").innerHTML = "Загружено " + event.loaded + " байт из " + event.total;
-    // "Uploaded " + event.loaded + " bytes of " + event.total
-    var percent = (event.loaded / event.total) * 100;
+    _("loaded_n_total").innerHTML = "Загружено " + formatBytes(event.loaded) + " из " + formatBytes(event.total); // "Uploaded " + event.loaded + " bytes of " + event.total
+    let percent = (event.loaded / event.total) * 100;
     _("progressBar").value = Math.round(percent);
-    _("status").innerHTML = Math.round(percent) + "% загрузка... пожалуйста подождите";
+    _("status").innerHTML = Math.round(percent) + "% загрузка... пожалуйста подождите"; // "% uploaded... please wait"
     if (Math.round(percent) === 100) {
         _("status").innerHTML = "Завершение";
     }
-    // "% uploaded... please wait"
 }
 
 function completeHandler(event) {
     _("status").innerHTML = event.target.responseText;
     _("statusIcon").removeAttribute('class');
     _("loaded_n_total").innerHTML += " (" + loadedFilesCount + " файлов нужного формата из " + filesCount + ")";
-    _("progressBar").value = 0; //wil clear progress bar after successful upload
+    _("progressBar").value = 0;
     updateTree();
 }
 
@@ -60,30 +57,65 @@ function abortHandler(event) {
     _("status").innerHTML = "Upload Aborted";
 }
 
-function hasExtension(fileName, exts) {
-    return (new RegExp('(' + exts.join('|').replace(/\./g, '\\.') + ')$')).test(fileName);
-}
 
-var interval;
+// таймер, для обновления таблицы
+let interval;
 
+// Функция стартует таймер
 function start() {
     interval = setInterval(checkUpdate, 500);
 }
 
+// Функция останавливает таймер
 function stop() {
     clearInterval(interval);
 
+    addListener();
+}
+
+
+
+// Элемент на который нажали "связать"
+let clickElement;
+
+// Функция, которая добавляет слушатели ко всем ссылкам "a", что бы понять на какую кнопку "связать" нажали
+function addListener() {
     $("table tr a").on('click', function(e){
         clickElement = $(this).closest('td').parent()[0].id;
     });
 }
 
-var clickElement;
-
+// Функция включает крутилку на строке, где нажали кнопку "ассоциировать"
 function updateStatus() {
     document.getElementById(clickElement).getElementsByTagName('i')[0].setAttribute('class', 'pi pi-spin pi-spinner');
 }
 
+
+
+// Функция привод байты к нормальному виду
+function formatBytes(bytes, decimals = 2) {
+    if (bytes === 0) return '0 Bytes';
+
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+// Функция возвращает расширение файла
+function hasExtension(fileName, exts) {
+    return (new RegExp('(' + exts.join('|').replace(/\./g, '\\.') + ')$')).test(fileName);
+}
+
+// Функция по id возвращает елемент
+function _(el) {
+    return document.getElementById(el);
+}
+
+// Часть кода что бы не прыгал размер таблицы
 // function unsetWidth() {
 //     document.getElementById('treeTable:treeTableData:treeTableName').style.width = "unset";
 //     document.getElementById('treeTable:treeTableData:treeTableName_clone').style.width = "unset";
