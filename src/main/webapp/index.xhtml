@@ -11,11 +11,11 @@
     <title>Разборщик файлов тепловых отчетов</title>
     <h:outputScript name="script.js" library="js"/>
     <h:outputStylesheet name="style.css" library="css"/>
+    <link rel="shortcut icon" type="image/x-icon" href="#{resource['images/logo.png']}"/>
 </h:head>
 <h:body style="margin: 0;">
     <h:form>
-        <!--        oncomplete="unsetWidth()"-->
-        <p:remoteCommand name="updateTree" action="#{uploadService.updateTreeData}" update="treeTable"/>
+        <p:remoteCommand name="updateTree" action="#{uploadService.updateTreeData}" update="treeTable"/> <!--oncomplete="unsetWidth()"-->
         <p:remoteCommand name="checkUpdate" action="#{uploadService.checkUpdate}" />
     </h:form>
     <h:form id="upload" enctype="multipart/form-data">
@@ -49,8 +49,10 @@
 <!--        <p:treeTable id="treeTableData" value="#{uploadService.root}" var="document" scrollable="true">-->
 <!--            <p:ajax event="expand" oncomplete="checkMargin()" />-->
 <!--            <p:ajax event="collapse" oncomplete="checkMargin()" />-->
-        <p:treeTable id="treeTableData" value="#{uploadService.root}" var="document">
-            <p:column id="treeTableName" headerText="Типы файлов/имена файлов">
+        <p:treeTable id="treeTableData" value="#{uploadService.root}" var="document" emptyMessage="Записей не найдено.">
+            <p:ajax event="expand" oncomplete="addListener()" />
+
+            <p:column id="treeTableName" headerText="Типы / Имена файлов">
                 <h:outputText value="#{document.name}" />
             </p:column>
             <p:column headerText="Размер" style="width: 200px; text-align: center;">
@@ -148,58 +150,6 @@
             </f:facet>
         </p:dialog>
     </h:form>
-<!--    <h:form rendered="{uploadService.showData}" id="parseData" style="margin: 5px;">-->
-<!--        <table>-->
-<!--            <tr>-->
-<!--                <td>-->
-<!--                    <h:outputLabel for="fileName" value="Имя файла"/>-->
-<!--                </td>-->
-<!--                <td colspan="3">-->
-<!--                    <p:inputText style="width: 100%;" id="fileName" value="{uploadService.showParseData.fileName}" />-->
-<!--                </td>-->
-<!--            </tr>-->
-<!--            <tr>-->
-<!--                <td>-->
-<!--                    <h:outputLabel for="address" value="Адрес"/>-->
-<!--                </td>-->
-<!--                <td colspan="3">-->
-<!--                    <p:inputText style="width: 100%;" id="address" value="{uploadService.showParseData.address}" />-->
-<!--                </td>-->
-<!--                <td>-->
-<!--                    <h:outputLabel for="reportType" value="Тип отчета"/>-->
-<!--                </td>-->
-<!--                <td>-->
-<!--                    <p:inputText id="reportType" value="{uploadService.showParseData.reportType}" />-->
-<!--                </td>-->
-<!--            </tr>-->
-<!--            <tr>-->
-<!--                <td>-->
-<!--                    <h:outputLabel for="startDate" value="Начальная дата"/>-->
-<!--                </td>-->
-<!--                <td>-->
-<!--                    <p:inputText id="startDate" value="{uploadService.showParseData.startDate}" />-->
-<!--                </td>-->
-<!--                <td>-->
-<!--                    <h:outputLabel for="endDate" value="Конечная дата"/>-->
-<!--                </td>-->
-<!--                <td>-->
-<!--                    <p:inputText id="endDate" value="{uploadService.showParseData.endDate}" />-->
-<!--                </td>-->
-<!--                <td>-->
-<!--                    <h:outputLabel for="counterType" value="Тип счетчика"/>-->
-<!--                </td>-->
-<!--                <td>-->
-<!--                    <p:inputText id="counterType" value="{uploadService.showParseData.counterType}" />-->
-<!--                </td>-->
-<!--                <td>-->
-<!--                    <h:outputLabel for="counterNumber" value="Номер счетчика"/>-->
-<!--                </td>-->
-<!--                <td>-->
-<!--                    <p:inputText id="counterNumber" value="{uploadService.showParseData.counterNumber}" />-->
-<!--                </td>-->
-<!--            </tr>-->
-<!--        </table>-->
-<!--    </h:form>-->
     <h:inputHidden id="UUID" value="#{uploadService.uuid}" />
 </h:body>
 </html>
