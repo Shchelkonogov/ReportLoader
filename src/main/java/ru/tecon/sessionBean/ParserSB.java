@@ -21,16 +21,21 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Stateless бин для разбора файлов тепловых отчетов,
+ * реализует локальный интерфейс {@link ParserLocal}
+ */
 @Stateless(name = "ParserBean", mappedName = "ejb/ParserBean")
 @Local(ParserLocal.class)
-@Remote(ParserRemote.class)
-public class ParserSB implements ParserLocal, ParserRemote {
+public class ParserSB implements ParserLocal {
 
     private static final Logger LOG = Logger.getLogger(ParserSB.class.getName());
 
     private static final String ALTER_SQL = "alter session set NLS_NUMERIC_CHARACTERS='.,'";
+
     private static final String SQL = "call fix_obj_heat_sys(?, ?, ?, ?, ?, ?, ?, ?, ?, to_date(?, 'dd.mm.yyyy'), " +
-            "to_date(?, 'dd.mm.yyyy'), ?, ?, ?, ?, ?)";
+            "to_date(?, 'dd.mm.yyyy'), ?, ?, ?, ?, ?, ?)";
+
     private static final String GET_OBJECT_NAMES = "select obj_name from obj_object where obj_type = 303 and upper(obj_name) like ? " +
             "order by obj_name";
 
@@ -43,6 +48,7 @@ public class ParserSB implements ParserLocal, ParserRemote {
 
     private static final String INSERT_SAVE_ASSOCIATION_NAME = "insert into dic_names values " +
             "((select obj_id from obj_object where obj_name = ?), ?, 'Y')";
+
     private static final String INSERT_SAVE_ASSOCIATION_COUNTER = "insert into dic_counters values " +
             "((select obj_id from obj_object where obj_name = ?), ?, ?)";
 
@@ -50,6 +56,12 @@ public class ParserSB implements ParserLocal, ParserRemote {
             "where techproc = ? and base_par_code = ?";
 
     private static final String INSERT_DAY_DATA = "insert into dz_hist_day_data values (?, ?, ?, to_date(?, 'dd.mm.yyyy hh24:mi:ss'), ?, null)";
+
+    private static final String INSERT_DB_CALCULATION = "insert into dz_last_calc_day (obj_id, par_id, stat_aggr, time_stamp) " +
+            "values(?, ?, ?, to_date(?, 'dd.mm.yyyy'))";
+
+    private static final String UPDATE_DB_CALCULATION = "update dz_last_calc_day set time_stamp = to_date(?, 'dd.mm.yyyy') " +
+            "where obj_id = ? and par_id = ? and stat_aggr = ?";
 
     @Resource(name = "jdbc/DataSource")
     private DataSource ds;
@@ -70,13 +82,20 @@ public class ParserSB implements ParserLocal, ParserRemote {
              CallableStatement stm = connection.prepareCall(SQL)) {
             alterStm.execute();
 
+            String reportType = data.getReportType();
+            String reportTypeImportant = "";
+            if (reportType.contains("!important")) {
+                reportTypeImportant = reportType.replace("!important", "");
+                reportType = reportTypeImportant;
+            }
+
             stm.setString(1, data.getFileName());
-            stm.setString(2, data.getReportType());
-            stm.setString(3, data.getReportType());
+            stm.setString(2, reportType);
+            stm.setString(3, reportType);
             stm.setString(4, data.getAddress());
             stm.setString(5, data.getCounterType());
             stm.setString(6, data.getCounterNumber());
-            stm.setString(7, data.getReportType());
+            stm.setString(7, reportType);
 
             String qi = "";
             String timei = "";
@@ -97,26 +116,23 @@ public class ParserSB implements ParserLocal, ParserRemote {
             stm.setString(9, timei);
             stm.setString(10, date);
             stm.setString(11, date);
+            stm.setString(12, reportTypeImportant);
 
-            stm.registerOutParameter(12, Types.INTEGER);
             stm.registerOutParameter(13, Types.INTEGER);
-            stm.registerOutParameter(14, Types.VARCHAR);
+            stm.registerOutParameter(14, Types.INTEGER);
             stm.registerOutParameter(15, Types.VARCHAR);
             stm.registerOutParameter(16, Types.VARCHAR);
+            stm.registerOutParameter(17, Types.VARCHAR);
 
             stm.executeUpdate();
 
-            LOG.info("send " + data.getFileName() + " : " + data.getReportType() + " : " + data.getReportType() + " : " + data.getAddress() + " : " +
-                    data.getCounterType() + " : " + data.getCounterNumber() + " : " + data.getReportType() + " : " + qi + " : " + timei + " : " +
-                    date + " : " + date);
-
-            if (stm.getInt(12) == 2) {
-                uploadData(data, stm.getString(15), stm.getInt(13));
+            if (stm.getInt(13) == 2) {
+                uploadData(data, stm.getString(16), stm.getInt(14));
             }
 
-            return new ParserResult(stm.getInt(12), data.getFileName(), stm.getString(16), stm.getString(13));
+            return new ParserResult(stm.getInt(13), data.getFileName(), stm.getString(17), stm.getString(14));
         } catch (SQLException e) {
-            LOG.log(Level.WARNING, "fix_obj_heat_sys error: ", e);
+            LOG.log(Level.WARNING, "fix_obj_heat_sys error: for file " + data.getFileName(), e);
         }
         return null;
     }
@@ -133,9 +149,77 @@ public class ParserSB implements ParserLocal, ParserRemote {
             loadOPCRemote.putData(integrateData);
 
             ejbLocal.uploadSecondaryData(histData);
+
+            ejbLocal.updateDataBaseCalculation(histData);
         } catch (SQLException e) {
             LOG.log(Level.WARNING, "identify object parameters error: ", e);
         }
+    }
+
+    private void generateData(List<DataModel> generateData, PreparedStatement stm, List<ParameterData> data, String system,
+                              int objectId, int changeDate) throws SQLException {
+        outer:
+        for (int i = 1; i < data.size(); i++) {
+            ParameterData parameterData = data.get(i);
+            stm.setString(1, system);
+            stm.setString(2, parameterData.getName());
+
+            ResultSet res = stm.executeQuery();
+            if (res.next()) {
+                DataModel dataModel = new DataModel(res.getString(1), objectId, res.getInt(2), res.getInt(3), null, null);
+
+                for (int j = 0; j < parameterData.getData().size(); j++) {
+                    String item = parameterData.getData().get(j);
+
+                    try {
+                        LocalDateTime dateTime = LocalDateTime.parse(data.get(0).getData().get(j) + " 00:00:00",
+                                DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss")).plusHours(changeDate);
+
+                        dataModel.addData(new ValueModel(item, dateTime));
+                    } catch (DateTimeParseException ignore) {
+                        continue outer;
+                    }
+                }
+
+                generateData.add(dataModel);
+            }
+        }
+    }
+
+    @Override
+    @Asynchronous
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+    public Future<Void> updateDataBaseCalculation(List<DataModel> histData) {
+        try (Connection connect = ds.getConnection();
+             PreparedStatement stmInsert = connect.prepareStatement(INSERT_DB_CALCULATION);
+             PreparedStatement stmUpdate = connect.prepareStatement(UPDATE_DB_CALCULATION)) {
+            for (DataModel model: histData) {
+                String date = model.getData().get(model.getData().size() - 1).getTime().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+                try {
+                    stmInsert.setInt(1, model.getObjectId());
+                    stmInsert.setInt(2, model.getParamId());
+                    stmInsert.setInt(3, model.getAggregateId());
+                    stmInsert.setString(4, date);
+
+                    stmInsert.executeUpdate();
+                } catch (SQLException e) {
+                    if (e.getErrorCode() == 1) {
+                        try {
+                            stmUpdate.setString(1, date);
+                            stmUpdate.setInt(2, model.getObjectId());
+                            stmUpdate.setInt(3, model.getParamId());
+                            stmUpdate.setInt(4, model.getAggregateId());
+
+                            stmUpdate.executeUpdate();
+                        } catch (SQLException ignore) {
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.WARNING, "error update data base calculation", e);
+        }
+        return null;
     }
 
     @Override
@@ -174,36 +258,6 @@ public class ParserSB implements ParserLocal, ParserRemote {
             LOG.log(Level.WARNING, "upload secondary data error: ", e);
         }
         return null;
-    }
-
-    private void generateData(List<DataModel> generateData, PreparedStatement stm, List<ParameterData> data, String system,
-                              int objectId, int changeDate) throws SQLException {
-        outer:
-        for (int i = 1; i < data.size(); i++) {
-            ParameterData parameterData = data.get(i);
-            stm.setString(1, system);
-            stm.setString(2, parameterData.getName());
-
-            ResultSet res = stm.executeQuery();
-            if (res.next()) {
-                DataModel dataModel = new DataModel(res.getString(1), objectId, res.getInt(2), res.getInt(3), null, null);
-
-                for (int j = 0; j < parameterData.getData().size(); j++) {
-                    String item = parameterData.getData().get(j);
-
-                    try {
-                        LocalDateTime dateTime = LocalDateTime.parse(data.get(0).getData().get(j) + " 00:00:00",
-                                DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss")).plusHours(changeDate);
-
-                        dataModel.addData(new ValueModel(item, dateTime));
-                    } catch (DateTimeParseException ignore) {
-                        continue outer;
-                    }
-                }
-
-                generateData.add(dataModel);
-            }
-        }
     }
 
     @Override
