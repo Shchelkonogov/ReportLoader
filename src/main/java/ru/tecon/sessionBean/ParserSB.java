@@ -101,15 +101,18 @@ public class ParserSB implements ParserLocal {
             String qi = "";
             String timei = "";
             String date = "";
-            if (!data.getParamIntegr().isEmpty()) {
+            if (!data.getParamIntegr().isEmpty()
+                    && Objects.nonNull(data.getParamIntegr().get(0).getData())
+                    && !data.getParamIntegr().get(0).getData().isEmpty()) {
+
                 date = data.getParamIntegr().get(0).getData().get(0);
-            }
-            for (ParameterData item: data.getParamIntegr()) {
-                if (item.getName().equals("Qi")) {
-                    qi = item.getData().get(0);
-                }
-                if (item.getName().equals("Timei")) {
-                    timei = item.getData().get(0);
+                for (ParameterData item: data.getParamIntegr()) {
+                    if (item.getName().equals("Qi")) {
+                        qi = item.getData().get(0);
+                    }
+                    if (item.getName().equals("Timei")) {
+                        timei = item.getData().get(0);
+                    }
                 }
             }
 
