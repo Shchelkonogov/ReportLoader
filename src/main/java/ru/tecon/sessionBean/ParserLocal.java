@@ -19,7 +19,7 @@ public interface ParserLocal {
      * @param data разобранные данные файла
      * @return результат разбора
      */
-    ParserResult parse(ReportData data);
+    Future<ParserResult> parse(ReportData data);
 
     /**
      * Метод выгружает из базы список имен объектов базы, в соответсвии с поисковой строкой

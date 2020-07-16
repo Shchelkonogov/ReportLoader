@@ -76,7 +76,8 @@ public class ParserSB implements ParserLocal {
     private ParserLocal ejbLocal;
 
     @Override
-    public ParserResult parse(ReportData data) {
+    @Asynchronous
+    public Future<ParserResult> parse(ReportData data) {
         try (Connection connection = ds.getConnection();
              PreparedStatement alterStm = connection.prepareStatement(ALTER_SQL);
              CallableStatement stm = connection.prepareCall(SQL)) {
@@ -130,7 +131,7 @@ public class ParserSB implements ParserLocal {
                 uploadData(data, stm.getString(16), stm.getInt(14));
             }
 
-            return new ParserResult(stm.getInt(13), data.getFileName(), stm.getString(17), stm.getString(14));
+            return new AsyncResult<>(new ParserResult(stm.getInt(13), data.getFileName(), stm.getString(17), stm.getString(14)));
         } catch (SQLException e) {
             LOG.log(Level.WARNING, "fix_obj_heat_sys error: for file " + data.getFileName(), e);
         }
