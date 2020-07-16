@@ -49,7 +49,8 @@
 <!--        <p:treeTable id="treeTableData" value="#{uploadService.root}" var="document" scrollable="true">-->
 <!--            <p:ajax event="expand" oncomplete="checkMargin()" />-->
 <!--            <p:ajax event="collapse" oncomplete="checkMargin()" />-->
-        <p:treeTable id="treeTableData" value="#{uploadService.root}" var="document" emptyMessage="Записей не найдено.">
+        <p:treeTable id="treeTableData" value="#{uploadService.root}" var="document" emptyMessage="Записей не найдено."
+                     widgetVar="treeTable" filteredNode="#{uploadService.rootFilter}">
             <p:ajax event="expand" oncomplete="addListener()" />
 
             <p:column id="treeTableName" headerText="Типы / Имена файлов">
@@ -65,7 +66,16 @@
                     <h:outputText rendered="#{!uploadService.isSizeRender(document.size)}" value="#{document.size}" />
                 </p:outputPanel>
             </p:column>
-            <p:column headerText="Статус" style="width: 100px; text-align: center;">
+            <p:column headerText="Статус" style="width: 150px; text-align: center;"
+                      filterBy="#{document.status}" filterMatchMode="exact">
+                <f:facet name="filter">
+                    <p:selectOneMenu onchange="PF('treeTable').filter()" styleClass="custom-filter">
+                        <f:selectItem itemLabel="Без фильтра" itemValue="#{null}" noSelectionOption="true" />
+                        <f:selectItem itemLabel="Разобранные" itemValue="2" />
+                        <f:selectItem itemLabel="Не разобранные" itemValue="4" />
+                        <f:selectItem itemLabel="Ошибки" itemValue="3" />
+                    </p:selectOneMenu>
+                </f:facet>
                 <p:outputPanel id="iconColumn">
                     <i class="#{uploadService.getStatusImage(document.status)}" style="font-size: 2em; color: #{uploadService.getColor(document.status)};"/>
                 </p:outputPanel>
