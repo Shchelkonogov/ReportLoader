@@ -1,19 +1,22 @@
-package ru.tecon.model;
+package ru.tecon.model.treeTable;
 
 import java.io.Serializable;
 import java.util.StringJoiner;
 
+/**
+ * Модель данных для отображения в treeTable.
+ * Состаит из имени файла, размера файла и статуса разбора.
+ * В узлах treeTable в поле размер файла заношу сводку по разбору файлов.
+ */
 public class Document implements Serializable {
 
     private String name;
     private String size;
-    private int status = -1;
-    private int id;
+    private int status = DocumentParsStatus.NEW;
 
-    public Document(String name, String size, int id) {
+    public Document(String name, String size) {
         this.name = name;
         this.size = size;
-        this.id = id;
     }
 
     public String getName() {
@@ -38,10 +41,6 @@ public class Document implements Serializable {
 
     public void setStatus(int status) {
         this.status = status;
-    }
-
-    public int getId() {
-        return id;
     }
 
     @Override
