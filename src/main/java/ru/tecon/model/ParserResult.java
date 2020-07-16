@@ -5,6 +5,10 @@ import ru.tecon.parser.model.ReportData;
 import java.io.Serializable;
 import java.util.StringJoiner;
 
+/**
+ * Класс с результатами попытки ассоциации разобранных данных с объектами в базе.
+ * Присутствует ссылка на разобранные данные
+ */
 public class ParserResult implements Serializable {
 
     private int status;
