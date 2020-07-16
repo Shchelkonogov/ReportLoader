@@ -23,3 +23,11 @@ input[type="file"] {
 .ui-node-level-1 {
     font-weight: bold;
 }
+
+body .ui-treetable thead th {
+    padding: 1px;
+}
+
+body .ui-treetable .ui-treetable-data>tr>td {
+    padding: 2px 1px;
+}
