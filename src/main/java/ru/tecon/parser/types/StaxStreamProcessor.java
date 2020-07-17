@@ -1,6 +1,4 @@
-package ru.tecon.parser.types.html;
-
-import ru.tecon.parser.types.xml.XMLType;
+package ru.tecon.parser.types;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -123,10 +121,6 @@ public class StaxStreamProcessor implements AutoCloseable {
                 return reader.getElementText();
             }
         }
-//        int event = reader.next();
-//        if (event == XMLEvent.START_ELEMENT && reader.getLocalName().equals("VALUE")) {
-//            return reader.getElementText();
-//        }
         return null;
     }
 

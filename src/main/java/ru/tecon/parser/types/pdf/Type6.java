@@ -1,4 +1,4 @@
-package ru.tecon.parser.types;
+package ru.tecon.parser.types.pdf;
 
 import com.google.common.collect.Range;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -7,6 +7,7 @@ import org.apache.pdfbox.text.TextPosition;
 import ru.tecon.parser.ParseException;
 import ru.tecon.parser.model.ParameterData;
 import ru.tecon.parser.model.ReportData;
+import ru.tecon.parser.types.ParserUtils;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -19,59 +20,57 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-public class Type3 {
+public class Type6 {
 
-	private static Logger logger = Logger.getLogger(Type3.class.getName());
+	private static Logger logger = Logger.getLogger(Type6.class.getName());
 
-	private static Type3 instance = new Type3();
+	private static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yy");
 
-	private static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+	private static Type6 instance = new Type6();
 
-	private static final List<String> testType = Arrays.asList("Месячный протокол учёта тепловой энергии и теплоносителя",
-			"по системе.*", ".*с.*по.*", "Потребитель:.*ЦТП №:.*", "Адрес потребителя:.*Телефон:.*",
-			"Ответственное лицо:.*", "Прибор:.*Сер.номер:.*", "Модель:.*Версия ПО:.*");
+	private static List<String> testType = Arrays.asList("Месячный протокол учёта тепловой энергии",
+			"и теплоносителя за.*", ".*с.*по.*", "Ответственное лицо:.*", "Прибор:.*Сер.номер:.*Расход.*",
+			"Модель:.*Версия ПО:.*");
+	private static Map<String, String> variableTestType =
+			Arrays.stream(new String[][] {
+					{"Потребитель:.*Абонент:.*", "Потребитель:.*Район:.*"},
+					{"Адрес потребителя:.*Телефон:.*", "Адрес потребителя:.*Абонент:.*"}
+			}).collect(Collectors.toMap(kv -> kv[0], kv -> kv[1]));
 
-	private static final List<String> testType1 = Arrays.asList("Посуточная ведомость показаний прибора учета",
-			".*за.*", ".*с.*по.*", "Потребитель:.*ЦТП №:.*", "Адрес потребителя:.*Телефон:.*",
-			"Ответственное лицо:.*", "Прибор:.*Сер.номер:.*", "Модель:.*Версия ПО:.*");
+	private static final List<String> removeData = new ArrayList<>(Arrays.asList("<E:Co", "d>",
+			"<", "#", "T", "R", "X"));
 
-	private static List<String> removeData = new ArrayList<>(Arrays.asList("U", "D", "G", "g,G", "U,g,G",
-			"D,G", "D,g,G", "g", "U,g", "U,D", "E", "U,G", "U,D,g,G", "D,g", "U,D,g", "U,E", "D,E",
-			"U,D,E", "U,g,E", "g,E", "g,G,E", "U,D,G", "D,g,E"));
+	private static List<String> paramName = Arrays.asList("Дата /", "Q", "tпод", "tобр", "tхв", "Vпод", "Vобр", "Рпод", "Робр",
+			"Тнар", "Tнар", "Pпод", "Pобр", "Pхв", "Vхв", "Нарастающим", "Gпод", "Gобр",
+			"tокр", "Gдоп", "Vдоп", "Подмес", "Утечка",
+			"Дата /", "Q", "tпод", "tобр", "Gпод", "Gобр", "Pпод", "Pобр", "Tнар", "Тнар",
+			"Нарастающим", "tхв", "Vхв", "Vпод", "Vобр", "tокр", "Gдоп", "Vдоп", "Рпод",
+			"Робр", "Pхв", "Подмес", "Утечка",
+			"Дата", "t1", "V1", "P1", "Tнар", "Нарастающим", "Тнар",
+			"Дата /", "Q", "tпод", "tобр", "Gпод", "Gобр", "Тнар", "Подмес", "Утечка",
+			"Нарастающим", "Tнар", "Pпод", "Pобр");
 
-	private static List<String> paramName = Arrays.asList("Дата", "Q", "Классиф", "Vпод", "Vобр", "Разбор", "tпод", "tобр", "Tхв",
-			"Pпод", "Pобр", "Tнар", "Нарастающим", "Q,", "Подпитка", "tпод-tобр", "tхв",
-			"Отказа", "Работы", "Q,Гкал", "Классификация", "Отказа, То", "Работы, Tр",
-			"Tр", "То", "V", "Pхв", "Классиф ошибок", "Нарастающим итогом на:",
-			"Q, [Гкал]", "Объёмный расход, [м3]", "Тнар, [час]", "Q[Гкал]", "Тнар[ч]",
-			"Тнар", "Vпод[м3]", "Vпод[м]", "Vобр[м3]", "Vобр[м]", "Mпод", "Mобр", "Мпод.[т]",
-			"Мобр.[т]", "Нарастающим итогом", "Q, Гкал", "3, Vпод [м]", "3, Vобр [м]",
-			"Дата", "Q", "Gпод", "Gобр", "Подмес", "Утечка", "tпод", "tобр", "Pпод",
-			"Pобр", "Tнар", "Классиф", "Нарастающим", "tпод-tобр*", "Tнераб*", "M1", "Q,",
-			"Mпод", "Mобр", "Подпитка", "tпод-tобр", "Tр", "То", "Мпод.[т]", "Мобр.[т]",
-			"Тнар", "M", "Массовый расход, [т]", "Vпод", "Vобр", "Vпод[м]", "Vобр[м]");
+	private static List<String> dbParamName = Arrays.asList("Дата", "Q", "T1", "T2", "T3", "V1", "V2", "p1", "p2",
+			"Time", "Time", "p1", "p2", "нет", "V3", "Дата", "G1", "G2", "T3",
+			"нет", "нет", "нет", "нет",
+			"Дата", "Q", "T1", "T2", "G1", "G2", "p1", "p2", "Time",
+			"Time", "Дата", "T3", "V3", "V1", "V2", "T3", "нет", "нет", "p1",
+			"p2", "нет", "нет", "нет",
+			"Дата", "T3", "V3", "нет", "нет", "Дата", "нет",
+			"Дата", "Q", "T1", "T2", "G1", "G2", "Time", "нет", "нет",
+			"Дата", "Time", "p1", "p2");
 
-	private static List<String> dbParamName = Arrays.asList("Дата", "Q", "нет", "V1", "V2", "нет", "T1", "T2", "T3",
-			"p1", "p2", "Time", "Дата", "Q", "нет", "нет", "T3", "нет", "Time",
-			"Q", "нет", "нет", "Time", "Time", "нет", "V1", "нет", "нет", "Дата",
-			"Q", "V1", "Time", "Q", "Time", "Time", "V1", "V1", "V2", "V2",
-			"G1", "V2", "G1", "V2", "Дата", "Q", "V1", "V2",
-			"Дата", "Q", "G1", "G2", "нет", "нет", "T1", "T2", "p1",
-			"p2", "Time", "нет", "Дата", "нет", "нет", "G1", "Q", "G1", "G2",
-			"нет", "нет", "Time", "нет", "G1", "G2", "Time", "G1", "G1", "V1",
-			"V2", "V1", "V2");
+	private static List<String> dbParamNameIntegr = Arrays.asList("Дата", "Q", "T1", "T2", "T3", "V1", "V2", "p1", "p2",
+			"Time", "Time", "p1", "p2", "нет", "V3", "Дата", "G1", "G2", "T3",
+			"нет", "нет", "нет", "нет",
+			"Дата", "Q", "T1", "T2", "G1", "G2", "p1", "p2", "Time",
+			"Time", "Дата", "T3", "V3", "V1", "V2", "T3", "нет", "нет", "p1",
+			"p2", "нет", "нет", "нет",
+			"Дата", "T3", "V3", "нет", "нет", "Дата", "нет",
+			"Дата", "Q", "T1", "T2", "G1", "G2", "Time", "нет", "нет",
+			"Дата", "Time", "p1", "p2");
 
-	private static List<String> dbParamNameIntegr = Arrays.asList("Дата", "Qi", "нет", "V1i", "V2i", "нет", "T1", "T2", "T3",
-			"p1", "p2", "Timei", "Дата", "Qi", "нет", "нет", "T3", "нет", "Timei",
-			"Qi", "нет", "нет", "Timei", "Timei", "нет", "V1i", "нет", "нет", "Дата",
-			"Qi", "V1i", "Timei", "Qi", "Timei", "Timei", "V1i", "V1i", "V2i", "V2i",
-			"G1i", "V2i", "G1i", "V2i", "Дата", "Qi", "V1i", "V2i",
-			"Дата", "Qi", "G1i", "G2i", "нет", "нет", "T1", "T2", "p1",
-			"p2", "Timei", "нет", "Дата", "нет", "нет", "G1i", "Qi", "G1i", "G2i",
-			"нет", "нет", "Timei", "нет", "G1i", "G2i", "Timei", "G1i", "G1i", "V1i",
-			"V2i", "V1i", "V2i");
-
-	private Type3() {
+	private Type6() {
 	}
 
 	private static List<String> createList(String filePath, PDFTable pdfTable) {
@@ -105,7 +104,7 @@ public class Type3 {
 	}
 
 	public static boolean checkType(String filePath) {
-		logger.info("Type3 checkType");
+		logger.info("Type6 checkType");
 
 		List<String> subLines = createList(filePath, instance.new PDFTable());
 
@@ -116,23 +115,21 @@ public class Type3 {
 
 		//Проверяем подходит ли нам этот отчет
 		boolean test = true;
-
 		for (String item: testType) {
 			if (subLines.stream().noneMatch(obj -> obj.trim().matches(item))) {
 				test = false;
 				break;
 			}
 		}
-		boolean test1 = true;
-
-		for (String item: testType1) {
-			if (subLines.stream().noneMatch(obj -> obj.trim().matches(item))) {
-				test1 = false;
+		for (Map.Entry<String, String> entry: variableTestType.entrySet()) {
+			if (subLines.stream().noneMatch(obj -> obj.trim().matches(entry.getKey()))
+					&& subLines.stream().noneMatch(obj -> obj.trim().matches(entry.getValue()))) {
+				test = false;
 				break;
 			}
 		}
 
-		if (test || test1) {
+		if (test) {
 			logger.info("checkType is successful");
 			return true;
 		}
@@ -152,110 +149,105 @@ public class Type3 {
 
 		//Проверяем есть ли данные в отчете
 		if (pdfTable.dataList.size() == 0 && pdfTable.dataListIntegr.size() == 0) {
-			throw new ParseException("empty report");
+			throw new ParseException("Пустой отчет");
 		}
 
 		//Определяем адрес потребителя.
 		String address;
-		if ((subLines.get(3).matches("Потребитель:.*")
-				&& subLines.get(4).matches("Адрес потребителя:.*")
-				&& subLines.get(5).matches("Ответственное лицо:.*"))
-				|| (subLines.get(3).matches("Потребитель:.*")
-						&& subLines.get(5).matches("Адрес потребителя:.*")
-						&& subLines.get(6).matches("Ответственное лицо:.*"))) {
-			address = subLines.stream().filter(obj -> obj.matches("Адрес потребителя:.*")).findFirst().orElse("");
-			address = address.substring(address.indexOf("Адрес потребителя:") + "Адрес потребителя:".length()
-					, address.indexOf("Телефон:")).trim();
-		} else {
-			//Если больше одной строки (теоретически надо всегда так делать)
-			int indexAdress = subLines.indexOf(subLines.stream()
-					.filter(obj -> obj.matches("Адрес потребителя:.*"))
-					.findFirst().orElse("-1"));
-			int indexFace = subLines.indexOf(subLines.stream()
-					.filter(obj -> obj.matches("Ответственное лицо:.*"))
-					.findFirst().orElse("-1"));
-			if (indexAdress < indexFace) {
-				List<Range<Integer>> columnRanges = getColumnRanges(pdfTable.addressLine);
 
-				//Знаем что должно быть 3 колонки и берем 2 колонку
-				for (Iterator<TextPosition> i = pdfTable.addressLine.iterator(); i.hasNext();) {
-					TextPosition item = i.next();
-					Range<Integer> textRange = Range.closed((int) item.getX(),
-							(int) (item.getX() + item.getWidth()));
-					if (!columnRanges.get(1).encloses(textRange)) {
-						i.remove();
-					}
+		final String addressStart = "Адрес потребителя:";
+		address = subLines.stream().filter(obj -> obj.matches(addressStart + ".*")).findFirst().orElse("");
+
+		if (address.equals("")) {
+			throw new ParseException("can't read address");
+		}
+
+		int addressIndex = subLines.indexOf(address);
+		if (addressIndex != 0 &&
+				subLines.get(addressIndex - 1).matches("Потребитель:.*") &&
+				subLines.get(addressIndex + 1).matches("Ответственное лицо:.*")) {
+			final List<String> addressEndList = Arrays.asList("Телефон:", "Абонент:");
+			String addressEnd = null;
+			for (String obj : addressEndList) {
+				if (address.matches(".*" + obj + ".*")) {
+					addressEnd = obj;
+					break;
 				}
-
-				List<Range<Integer>> lineRanges = getLineRanges(pdfTable.addressLine);
-
-				StringBuilder result = new StringBuilder();
-				for (Range<Integer> range: lineRanges) {
-					ArrayList<TextPosition> line = new ArrayList<>();
-					for (Iterator<TextPosition> i = pdfTable.addressLine.iterator(); i.hasNext();) {
-						TextPosition item = i.next();
-						Range<Integer> textRange = Range.closed((int) item.getY(),
-								(int) (item.getY() + item.getHeight()));
-						if (range.encloses(textRange)) {
-							line.add(item);
-							i.remove();
-						}
-					}
-					result.append(pdfTable.buildRow(line));
-				}
-
-				address = result.toString();
-			} else {
-				throw new ParseException("Адресс поребителя больше чем на одной строке");
 			}
+			if (addressEnd != null) {
+				address = address.substring(address.indexOf(addressStart) + addressStart.length(),
+						address.indexOf(addressEnd)).trim();
+			} else {
+				throw new ParseException("Ошибка в адресе потребителя");
+			}
+		} else {
+			throw new ParseException("Адрес потребителя больше чем на одной строке");
 		}
 
 		//Определяем тип прибора.
-		String counterType;
-		try {
-			counterType = subLines.stream().filter(obj -> obj.matches("Модель:.*")).findFirst().orElse("");
-			counterType = counterType.substring(counterType.indexOf("Модель:") + "Модель:".length()
-					, counterType.indexOf("Версия ПО:")).trim();
-		} catch (NoSuchElementException e) {
-			throw new ParseException("Ошибка в типе прибора");
+		final String counterTypeStart = "Модель:";
+		String counterType = subLines.stream().filter(obj -> obj.matches(counterTypeStart + ".*"))
+				.findFirst()
+				.orElse("");
+		if (counterType.equals("")) {
+			throw new ParseException("can't read counter type");
 		}
+		counterType = counterType
+				.substring(counterType.indexOf(counterTypeStart) + counterTypeStart.length(),
+						counterType.indexOf("Версия ПО:")).trim();
 
 		//Определяем тип отчета.
-		String reportName = subLines.stream().filter(obj -> obj.matches("(по системе.*за.*)|(.*за.*г[.])")).findFirst().orElse("").trim();
-		if (reportName.equals("")) {
-			throw new ParseException("can't read report name");
+		String reportName = null;
+		for (int i = subLines.size() - 1; i >= 0; i--) {
+			if (!subLines.get(i).trim().equals("")) {
+				reportName = subLines.get(i).trim();
+				break;
+			}
 		}
 
 		//Определяем серийний номер.
-		String counterNumber = subLines.stream().filter(obj -> obj.matches(".*Сер.номер:.*Расход.*")).findFirst().orElse("");
+		final String counterNumberStart = "Сер.номер:";
+		String counterNumber = subLines.stream()
+				.filter(obj -> obj.matches(".*" + counterNumberStart + ".*"))
+				.findFirst()
+				.orElse("");
 		if (counterNumber.equals("")) {
 			throw new ParseException("can't read counter number");
 		}
-		counterNumber = counterNumber.substring(counterNumber.indexOf("Сер.номер:") + "Сер.номер:".length(),
-				counterNumber.indexOf("Расход")).trim();
+		counterNumber = counterNumber
+				.substring(counterNumber.indexOf(counterNumberStart) + counterNumberStart.length(),
+						counterNumber.indexOf("Расход")).trim();
 
 		//Определяем начальную и конечную дату, а также период.
-		String textPart = subLines.stream().filter(obj -> obj.trim().matches("(\\(c.*по.*\\))|(\\(с.*по.*\\))")).findFirst().orElse("");
+		LocalDate date1;
+		LocalDate date2;
+		final String from = "с";
+		final String to = "по";
+
+		String textPart = subLines.stream()
+				.filter(obj -> obj.matches(".*" + from + ".*" + to + ".*"))
+				.findFirst().orElse("");
+
 		if (textPart.equals("")) {
 			throw new ParseException("can't read date");
 		}
-		textPart = textPart.replace('с', 'c');
-		LocalDate date1 = null;
-		LocalDate date2 = null;
 
-		String start = textPart.replace("(c", "").trim().substring(0, 10);
-		String end = textPart.substring(textPart.indexOf("по") + 2).trim().substring(0, 10);
+		String start = textPart.substring(textPart.indexOf(from) + from.length())
+				.trim().substring(0, 8);
+		String end = textPart.substring(textPart.indexOf(to) + to.length())
+				.trim().substring(0, 8);
 
 		try {
-			date1 = LocalDate.parse(end, formatter).plusDays(1);
+			date1 = LocalDate.parse(end, formatter);
 			date2 = LocalDate.parse(start, formatter);
-
-			if (date1.compareTo(date2) == 0) {
-				throw new ParseException("same date");
-			}
 		} catch (DateTimeParseException e) {
-			e.printStackTrace();
+			throw new ParseException("Ошибка датах");
 		}
+
+		if (date1.compareTo(date2) == 0) {
+			throw new ParseException("Одинаковые даты");
+		}
+
 
 		HeaderRange headerRangeClass = instance.new HeaderRange();
 		//Определяем основные данные
@@ -317,7 +309,7 @@ public class Type3 {
 				}
 			}
 			if (!addStatus) {
-				throw new ParseException("Не знаю параметра: " + columnParams.stream().map(e -> e = "'" + e + "'").collect(Collectors.toList()));
+				throw new ParseException("Не знаю параметра: " + columnParams);
 			}
 		}
 
@@ -337,7 +329,7 @@ public class Type3 {
 		}
 
 		//Получаем значения таблицы
-		List<Range<Integer>> dataColumnRanges = getColumnRanges(pdfTable.dataList);
+		List<Range<Integer>> dataColumnRanges = headerRangeClass.getColumnRanges1(pdfTable.dataList);
 
 		//Объединяем колонки значений и шапки
 		pdfTable.columnRanges.clear();
@@ -377,16 +369,9 @@ public class Type3 {
 					if (removeData.contains(value)) {
 						value = "";
 					}
-					value = value.replace(',', '.');
-					if (value.equals("-")) {
-						value = "";
-					}
-					if (value.length() > 1) {
-						//В тысячных значениях бывает пробел 1 000
-						value = value.replaceAll(" ", "");
-						//Бывает - попадает в конец
-						if (value.substring(value.length() - 1).matches("-")) {
-							value = "-" + value.substring(0, value.length() - 1);
+					for (String obj : removeData) {
+						if (value.matches(".*" + obj + ".*")) {
+							value = value.replaceAll(obj, "").trim();
 						}
 					}
 					if (i == 0 && value.matches("\\d{2}.\\d{2}.\\d{2}")) {
@@ -426,11 +411,11 @@ public class Type3 {
 		//Проверяем на наличие не числовых значений
 		for (int i = 1; i < resultParam.size(); i++) {
 			for (String item: resultParam.get(i).getData()) {
-				if (!item.equals("")) {
+				if (!item.equals("") && !item.equals("-")) {
 					try {
 						new BigDecimal(item);
 					} catch (NumberFormatException e) {
-						throw new ParseException("Не числовое значение: " + item.replace('.', ','));
+						throw new ParseException("Не числовое значение: " + item);
 					}
 				}
 			}
@@ -492,14 +477,14 @@ public class Type3 {
 
 			boolean addStatus = false;
 			for (String item : columnParams) {
-				item = item.trim();
-				if (paramName.contains(item)) {
-					resultParamIntegr.add(new ParameterData(dbParamNameIntegr.get(paramName.indexOf(item))));
+				String value = item.trim();
+				if (paramName.contains(value)) {
+					resultParamIntegr.add(new ParameterData(dbParamNameIntegr.get(paramName.indexOf(value))));
 					addStatus = true;
 				}
 			}
 			if (!addStatus) {
-				throw new ParseException("Не знаю параметра: " + columnParams.stream().map(e -> e = "'" + e + "'").collect(Collectors.toList()));
+				throw new ParseException("Не знаю параметра: " + columnParams);
 			}
 		}
 
@@ -518,7 +503,7 @@ public class Type3 {
 		}
 
 		//Получаем значения таблицы
-		dataColumnRanges = getColumnRanges(pdfTable.dataListIntegr);
+		dataColumnRanges = headerRangeClass.getColumnRanges1(pdfTable.dataListIntegr);
 		TrapRangeBuilder lineTrapRangeBuilder1 = new TrapRangeBuilder();
 		dataColumnRanges.forEach(lineTrapRangeBuilder1::addRange);
 		headColumnRanges.forEach(lineTrapRangeBuilder1::addRange);
@@ -535,10 +520,6 @@ public class Type3 {
 		pdfTable.createTableStatus = false;
 
 		subList = new ArrayList<>(Arrays.asList(table.toString().split("\n")));
-
-		SimpleDateFormat formatDataShort = new SimpleDateFormat("dd.MM.yyyy");
-		SimpleDateFormat formatDataLong = new SimpleDateFormat("dd.MM.yyyyHH:mm:ss");
-
 		for (String line : subList) {
 			String value;
 			String[] items = line.split("\\|");
@@ -548,12 +529,11 @@ public class Type3 {
 					if (removeData.contains(value)) {
 						value = "";
 					}
-					value = value.replaceAll(",", ".");
-					value = value.replaceAll(" ", "");
-					try {
-						Date date = formatDataLong.parse(value);
-						value = formatDataShort.format(date);
-					} catch (java.text.ParseException ignore) {
+					if (i == 0 && value.matches("\\d{2}.\\d{2}.\\d{2}")) {
+						try {
+							value = format2.format(format1.parse(value));
+						} catch (java.text.ParseException ignore) {
+						}
 					}
 					resultParamIntegr.get(i).getData().add(value);
 				}
@@ -569,7 +549,7 @@ public class Type3 {
 					try {
 						new BigDecimal(item);
 					} catch (NumberFormatException e) {
-						throw new ParseException("Не числовое значение: " + item.replace('.', ','));
+						throw new ParseException("Не числовое значение: " + item);
 					}
 				}
 			}
@@ -592,18 +572,14 @@ public class Type3 {
 			throw new ParseException("Проверка не пройдена");
 		}
 
+		ParserUtils.updateValue("Time", reportData.getParam(), 3600);
+		ParserUtils.updateValue("Timei", reportData.getParamIntegr(), 3600);
+		ParserUtils.updateValue("p1", reportData.getParam(), 0.101325f);
+		ParserUtils.updateValue("p2", reportData.getParam(), 0.101325f);
+		ParserUtils.updateValue("p3", reportData.getParam(), 0.101325f);
+
 		return reportData;
 	}
-
-	private static List<Range<Integer>> getColumnRanges(List<TextPosition> pageContent) {
-        TrapRangeBuilder lineTrapRangeBuilder = new TrapRangeBuilder();
-        for (TextPosition textPosition : pageContent) {
-            Range<Integer> lineRange = Range.closed((int) textPosition.getX(),
-                    (int) (textPosition.getX() + textPosition.getWidth()));
-            lineTrapRangeBuilder.addRange(lineRange);
-        }
-		return lineTrapRangeBuilder.build();
-    }
 
 	private static List<Range<Integer>> getLineRanges(List<TextPosition> pageContent) {
         TrapRangeBuilder lineTrapRangeBuilder = new TrapRangeBuilder();
@@ -619,147 +595,6 @@ public class Type3 {
         TextPositionExtractor extractor = new TextPositionExtractor(pdDoc);
         return extractor.extract();
     }
-
-    private class PDFTable {
-
-		private boolean loadDataStatus = true;
-		private boolean loadDataIntegrateStatus = false;
-		private boolean createTableStatus = false;
-		private boolean skipLine = true;
-		private boolean startLoad = false;
-		private boolean loadAddress = false;
-
-		private List<Range<Integer>> columnRanges = new ArrayList<>();
-
-		private List<TextPosition> headList = new ArrayList<>();
-		private List<TextPosition> headListIntegr = new ArrayList<>();
-		private List<TextPosition> dataList = new ArrayList<>();
-		private List<TextPosition> dataListIntegr = new ArrayList<>();
-		private List<TextPosition> addressLine = new ArrayList<>();
-
-		private StringBuilder buildTable(List<TextPosition> tableContent, List<Range<Integer>> rowTrapRanges) {
-			StringBuilder retVal = new StringBuilder();
-			int idx = 0;
-			int rowIdx = 0;
-			List<TextPosition> rowContent = new ArrayList<>();
-			while (idx < tableContent.size()) {
-				TextPosition textPosition = tableContent.get(idx);
-				Range<Integer> rowTrapRange = rowTrapRanges.get(rowIdx);
-				Range<Integer> textRange = Range.closed((int) textPosition.getY(),
-						(int) (textPosition.getY() + textPosition.getHeight()));
-				if (rowTrapRange.encloses(textRange)) {
-					rowContent.add(textPosition);
-					idx++;
-				} else {
-					if (retVal.length() > 0) {
-						retVal.append("\n");
-					}
-					StringBuilder row = buildRow(rowContent);
-					retVal.append(row);
-					rowContent.clear();
-					rowIdx++;
-				}
-			}
-			if (!rowContent.isEmpty() && rowIdx < rowTrapRanges.size()) {
-				if (retVal.length() > 0) {
-					retVal.append("\n");
-				}
-				StringBuilder row = buildRow(rowContent);
-				retVal.append(row);
-			}
-			return retVal;
-		}
-
-		private StringBuilder buildRow(List<TextPosition> rowContent) {
-			StringBuilder retVal = new StringBuilder();
-			rowContent.sort((o1, o2) -> {
-				int retVal1 = 0;
-				if (o1.getX() < o2.getX()) {
-					retVal1 = -1;
-				} else if (o1.getX() > o2.getX()) {
-					retVal1 = 1;
-				}
-				return retVal1;
-			});
-
-			if (!createTableStatus) {
-				for (TextPosition item: rowContent) {
-					retVal.append(item.toString());
-				}
-			} else {
-				for (Range<Integer> range: columnRanges) {
-					for (Iterator<TextPosition> i = rowContent.iterator(); i.hasNext();) {
-						TextPosition item = i.next();
-						Range<Integer> textRange = Range.closed((int) item.getX(),
-								(int) (item.getX() + item.getWidth()));
-						if (range.encloses(textRange)) {
-							retVal.append(item.toString());
-							i.remove();
-						}
-					}
-					retVal.append(" |");
-				}
-			}
-
-			if (loadDataStatus) {
-				SimpleDateFormat format = new SimpleDateFormat("dd.MM.yy");
-				try {
-					format.parse(retVal.toString().substring(0, 8));
-					startLoad = false;
-					dataList.addAll(rowContent);
-				} catch (Exception ignore) {
-				}
-
-				if (retVal.toString().matches("Дата.*")
-						|| retVal.toString().trim().matches("Объёмный расход.*")
-						|| startLoad) {
-					startLoad = true;
-					headList.addAll(rowContent);
-				}
-
-				if (retVal.toString().matches("Итого:.*")) {
-					loadDataStatus = false;
-					loadDataIntegrateStatus = true;
-				}
-			}
-
-			if (loadDataIntegrateStatus) {
-				SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy");
-				try {
-					format.parse(retVal.toString().substring(0, 10));
-					startLoad = false;
-					dataListIntegr.addAll(rowContent);
-				} catch (Exception ignore) {
-				}
-
-				if (retVal.toString().trim().matches("Нарастающим.*")
-						|| retVal.toString().trim().matches("Наиртаосгтоамю.*")
-						|| startLoad) {
-					startLoad = true;
-					headListIntegr.addAll(rowContent);
-				}
-
-				if (retVal.toString().matches("Итого:.*")) {
-					loadDataIntegrateStatus = false;
-				}
-
-				if (skipLine) {
-					loadDataIntegrateStatus = true;
-					skipLine = false;
-				}
-			}
-
-			if (retVal.toString().matches(("Адрес потребителя:.*")) || loadAddress) {
-				if (retVal.toString().matches(("Ответственное лицо:.*"))) {
-					loadAddress = false;
-				} else {
-					loadAddress = true;
-					addressLine.addAll(rowContent);
-				}
-			}
-			return retVal;
-		}
-	}
 
 	private static class TextPositionExtractor extends PDFTextStripper {
 
@@ -815,7 +650,7 @@ public class Type3 {
 			List<List<TextPosition>> listTP = new ArrayList<>();
 
 			List<Range<Integer>> columnRanges = getColumnRanges1(list);
-			if (columnRanges.size() != 1) {
+			if (columnRanges.size() > 1) {
 				headTableList.remove(index);
 
 				int lowRange = columnRanges.get(0).lowerEndpoint();
@@ -912,6 +747,135 @@ public class Type3 {
 					}
 				}
 			}
+		}
+	}
+
+	private class PDFTable {
+
+		private boolean loadDataStatus = true;
+		private boolean loadDataIntegrateStatus = false;
+		private boolean createTableStatus = false;
+		private boolean skipLine = true;
+		private boolean startLoad = false;
+
+		private List<Range<Integer>> columnRanges = new ArrayList<>();
+
+		private List<TextPosition> headList = new ArrayList<>();
+		private List<TextPosition> headListIntegr = new ArrayList<>();
+		private List<TextPosition> dataList = new ArrayList<>();
+		private List<TextPosition> dataListIntegr = new ArrayList<>();
+
+		private StringBuilder buildTable(List<TextPosition> tableContent, List<Range<Integer>> rowTrapRanges) {
+			StringBuilder retVal = new StringBuilder();
+			int idx = 0;
+			int rowIdx = 0;
+			List<TextPosition> rowContent = new ArrayList<>();
+			while (idx < tableContent.size()) {
+				TextPosition textPosition = tableContent.get(idx);
+				Range<Integer> rowTrapRange = rowTrapRanges.get(rowIdx);
+				Range<Integer> textRange = Range.closed((int) textPosition.getY(),
+						(int) (textPosition.getY() + textPosition.getHeight()));
+				if (rowTrapRange.encloses(textRange)) {
+					rowContent.add(textPosition);
+					idx++;
+				} else {
+					if (retVal.length() > 0) {
+						retVal.append("\n");
+					}
+					StringBuilder row = buildRow(rowContent);
+					retVal.append(row);
+					rowContent.clear();
+					rowIdx++;
+				}
+			}
+			if (!rowContent.isEmpty() && rowIdx < rowTrapRanges.size()) {
+				if (retVal.length() > 0) {
+					retVal.append("\n");
+				}
+				StringBuilder row = buildRow(rowContent);
+				retVal.append(row);
+			}
+			return retVal;
+		}
+
+		private StringBuilder buildRow(List<TextPosition> rowContent) {
+			StringBuilder retVal = new StringBuilder();
+			rowContent.sort((o1, o2) -> {
+				int retVal1 = 0;
+				if (o1.getX() < o2.getX()) {
+					retVal1 = -1;
+				} else if (o1.getX() > o2.getX()) {
+					retVal1 = 1;
+				}
+				return retVal1;
+			});
+
+			if (!createTableStatus) {
+				for (TextPosition item: rowContent) {
+					retVal.append(item.toString());
+				}
+			} else {
+				for (Range<Integer> range: columnRanges) {
+					for (Iterator<TextPosition> i = rowContent.iterator(); i.hasNext();) {
+						TextPosition item = i.next();
+						Range<Integer> textRange = Range.closed((int) item.getX(),
+								(int) (item.getX() + item.getWidth()));
+						if (range.encloses(textRange)) {
+							retVal.append(item.toString());
+							i.remove();
+						}
+					}
+					retVal.append(" |");
+				}
+			}
+
+			if (loadDataStatus) {
+				SimpleDateFormat format = new SimpleDateFormat("dd.MM.yy");
+				try {
+					format.parse(retVal.toString().substring(0, 8));
+					startLoad = false;
+					dataList.addAll(rowContent);
+				} catch (Exception ignored) {
+				}
+
+				if (retVal.toString().matches("Дата.*")
+						|| startLoad) {
+					startLoad = true;
+					headList.addAll(rowContent);
+				}
+
+				if (retVal.toString().matches("Итого:.*") || retVal.toString().matches("Итого :.*")) {
+					loadDataStatus = false;
+					loadDataIntegrateStatus = true;
+				}
+			}
+
+			if (loadDataIntegrateStatus) {
+				SimpleDateFormat format = new SimpleDateFormat("dd.MM.yy");
+				try {
+					format.parse(retVal.toString().substring(0, 8));
+					startLoad = false;
+					dataListIntegr.addAll(rowContent);
+				} catch (Exception ignored) {
+				}
+
+				if (retVal.toString().trim().matches("Нарастающим.*")
+						|| startLoad) {
+					startLoad = true;
+					headListIntegr.addAll(rowContent);
+				}
+
+				if (retVal.toString().matches("Итого:.*")) {
+					loadDataIntegrateStatus = false;
+				}
+
+				if (skipLine) {
+					loadDataIntegrateStatus = true;
+					skipLine = false;
+				}
+			}
+
+			return retVal;
 		}
 	}
 }

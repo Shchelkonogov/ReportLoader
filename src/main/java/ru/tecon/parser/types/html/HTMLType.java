@@ -3,6 +3,8 @@ package ru.tecon.parser.types.html;
 import ru.tecon.parser.ParseException;
 import ru.tecon.parser.model.ParameterData;
 import ru.tecon.parser.model.ReportData;
+import ru.tecon.parser.types.ParserUtils;
+import ru.tecon.parser.types.StaxStreamProcessor;
 
 import javax.xml.stream.XMLStreamException;
 import java.io.*;
@@ -30,14 +32,14 @@ public class HTMLType {
     private static List<String> dbParamName = Arrays.asList("Дата", "Q", "V1", "V2", "нет", "нет", "G1", "G2",
             "нет", "нет", "T1", "T2", "T3", "p1", "p2", "Time", "нет", "нет", "нет", "p3", "Дата", "нет");
 
-    private static List<String> dbParamNameIntegr = Arrays.asList("Дата", "Qi", "V1i", "V2i", "нет", "нет", "G1i", "G2i",
-            "нет", "нет", "T1", "T2", "T3", "p1", "p2", "Timei", "нет", "нет", "нет", "p3", "Дата", "нет");
+    private static List<String> dbParamNameIntegr = Arrays.asList("Дата", "Q", "V1", "V2", "нет", "нет", "G1", "G2",
+            "нет", "нет", "T1", "T2", "T3", "p1", "p2", "Time", "нет", "нет", "нет", "p3", "Дата", "нет");
 
     private HTMLType() {
     }
 
     public static void main(String[] args) throws ParseException {
-        getData("C:\\Programs\\1-я прядильная 6 цо.html");
+        getData("C:\\Programs\\800000000003594479_C2750_TP_202004_+_6я+Парковая+ул.,+д.27.html");
 }
 
     public static ReportData getData(String filePath) throws ParseException {
@@ -154,11 +156,11 @@ public class HTMLType {
             throw new ParseException("parse error");
         }
 
-        updateParamNames(resultParam, dbParamName);
-        updateParamNames(resultParamIntegr, dbParamNameIntegr);
+        ParserUtils.updateParamNames(resultParam, dbParamName, paramName);
+        ParserUtils.updateParamNames(resultParamIntegr, dbParamNameIntegr, paramName);
 
-        removeNullRows(resultParam);
-        removeNullRows(resultParamIntegr);
+        ParserUtils.removeNullRows(resultParam);
+        ParserUtils.removeNullRows(resultParamIntegr);
 
         ReportData reportData = new ReportData();
         reportData.setFileName(Paths.get(filePath).getFileName().toString());
@@ -184,6 +186,12 @@ public class HTMLType {
         } catch (Exception ignore) {
         }
 
+        ParserUtils.updateValue("Time", reportData.getParam(), 3600);
+        ParserUtils.updateValue("Timei", reportData.getParamIntegr(), 3600);
+        ParserUtils.updateValue("p1", reportData.getParam(), 0.101325f);
+        ParserUtils.updateValue("p2", reportData.getParam(), 0.101325f);
+        ParserUtils.updateValue("p3", reportData.getParam(), 0.101325f);
+
         return reportData;
     }
 
@@ -191,44 +199,9 @@ public class HTMLType {
         if (Objects.isNull(value) || value.trim().equals("-")) {
             return "";
         }
+        if (value.matches("\\d{2}[-]\\d{2}[-]\\d{4}")) {
+            return value.replaceAll("-", ".").trim();
+        }
         return value.replace(",", ".").trim();
-    }
-
-    private static void removeNullRows(List<ParameterData> resultParam) {
-        //Убираем строки где только дата, а остальные значения пустые
-        List<Integer> removeList = new ArrayList<>();
-        boolean flag;
-        for (int i = 0; i < resultParam.get(0).getData().size(); i++) {
-            flag = true;
-            for (int j = 1; j < resultParam.size(); j++) {
-                if (!resultParam.get(j).getData().get(i).equals("")) {
-                    flag = false;
-                    break;
-                }
-            }
-            if (flag) {
-                removeList.add(i);
-            }
-        }
-        for (int i = removeList.size() - 1; i >= 0; i--) {
-            for (ParameterData item: resultParam) {
-                item.getData().remove(removeList.get(i).intValue());
-            }
-        }
-    }
-
-    private static void updateParamNames(List<ParameterData> resultParam, List<String> newNames) throws ParseException {
-        List<String> unknownParamNames = new ArrayList<>();
-        for (ParameterData data: resultParam) {
-            int index = paramName.indexOf(data.getName());
-            if (index != -1) {
-                data.setName(newNames.get(index));
-            } else {
-                unknownParamNames.add(data.getName());
-            }
-        }
-        if (!unknownParamNames.isEmpty()) {
-            throw new ParseException("don't no parameter " + unknownParamNames);
-        }
     }
 }

@@ -2,7 +2,6 @@ package ru.tecon.parser.model;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,8 +13,6 @@ public class ReportData implements Serializable {
 	private LocalDate startDate, endDate;
 	private List<ParameterData> param = new ArrayList<>(),
 			paramIntegr = new ArrayList<>();
-	
-	private static final SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy");
 	
 	public ReportData() {	
 	}
@@ -64,24 +61,8 @@ public class ReportData implements Serializable {
 		return counterNumber;
 	}
 	
-	public LocalDate getStartDate() {
-		return startDate;
-	}
-	
-	public String getStartDateString() {
-		return format.format(startDate);
-	}
-	
 	public List<ParameterData> getParam() {
 		return param;
-	}
-	
-	public LocalDate getEndDate() {
-		return endDate;
-	}
-	
-	public String getEndDateString() {
-		return format.format(endDate);
 	}
 	
 	public List<ParameterData> getParamIntegr() {
@@ -122,7 +103,7 @@ public class ReportData implements Serializable {
 			}
 			for (String obj: data.get(i).getData()) {
 				if (i == 0) {
-					if (!obj.matches("\\d{2}.\\d{2}.\\d{4}")) {
+					if (!obj.matches("\\d{2}[.]\\d{2}[.]\\d{4}")) {
 						return false;
 					}
 				} else {

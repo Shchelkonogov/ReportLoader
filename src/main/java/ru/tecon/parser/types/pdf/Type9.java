@@ -1,4 +1,4 @@
-package ru.tecon.parser.types;
+package ru.tecon.parser.types.pdf;
 
 import com.google.common.collect.Range;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -7,6 +7,7 @@ import org.apache.pdfbox.text.TextPosition;
 import ru.tecon.parser.ParseException;
 import ru.tecon.parser.model.ParameterData;
 import ru.tecon.parser.model.ReportData;
+import ru.tecon.parser.types.ParserUtils;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -60,18 +61,18 @@ public class Type9 {
 			"нет", "Time", "нет", "Дата", "Q", "G1", "G2", "нет", "нет", "нет", "нет",
 			"p1", "p2", "Time", "Дата", "G1", "G2", "Time");
 
-	private static List<String> dbParamNameIntegr = Arrays.asList("Дата", "Qi", "T1", "T2", "T3", "V1i", "V2i", "p1", "p2",
-			"нет", "нет", "нет", "нет", "Timei", "нет", "Дата", "V1i", "V2i", "нет",
-			"Timei", "Qi", "нет", "Timei", "Дата", "G1i", "G2i", "нет", "нет", "нет",
-			"нет", "нет", "p2", "G1i", "G2i", "нет", "G1i", "G2i", "нет", "T3",
-			"нет", "Timei", "V1i", "V2i", "нет",
-			"Дата", "Qi", "G1i", "G2i", "T1", "T2", "Timei", "p1", "p2",
-			"V1i", "V2i", "нет", "нет", "нет", "нет", "Дата", "нет", "нет", "нет",
-			"Qi", "G1i", "G2i", "нет", "нет", "нет", "Timei", "нет", "Дата", "G1i",
-			"G2i", "Timei", "нет", "нет", "нет", "Timei", "T3",
-			"Дата", "Qi", "G1i", "G2i", "нет", "нет", "нет", "T1", "T2", "нет",
-			"нет", "Timei", "нет", "Дата", "Qi", "G1i", "G2i", "нет", "нет", "нет", "нет",
-			"p1", "p2", "Timei", "Дата", "G1i", "G2i", "Timei");
+	private static List<String> dbParamNameIntegr = Arrays.asList("Дата", "Q", "T1", "T2", "T3", "V1", "V2", "p1", "p2",
+			"нет", "нет", "нет", "нет", "Time", "нет", "Дата", "V1", "V2", "нет",
+			"Time", "Q", "нет", "Time", "Дата", "G1", "G2", "нет", "нет", "нет",
+			"нет", "нет", "p2", "G1", "G2", "нет", "G1", "G2", "нет", "T3",
+			"нет", "Time", "V1", "V2", "нет",
+			"Дата", "Q", "G1", "G2", "T1", "T2", "Time", "p1", "p2",
+			"V1", "V2", "нет", "нет", "нет", "нет", "Дата", "нет", "нет", "нет",
+			"Q", "G1", "G2", "нет", "нет", "нет", "Time", "нет", "Дата", "G1",
+			"G2", "Time", "нет", "нет", "нет", "Time", "T3",
+			"Дата", "Q", "G1", "G2", "нет", "нет", "нет", "T1", "T2", "нет",
+			"нет", "Time", "нет", "Дата", "Q", "G1", "G2", "нет", "нет", "нет", "нет",
+			"p1", "p2", "Time", "Дата", "G1", "G2", "Time");
 
 	private Type9() {
 	}
@@ -600,6 +601,12 @@ public class Type9 {
 
 			throw new ParseException("Проверка не пройдена");
 		}
+
+		ParserUtils.updateValue("Time", reportData.getParam(), 3600);
+		ParserUtils.updateValue("Timei", reportData.getParamIntegr(), 3600);
+		ParserUtils.updateValue("p1", reportData.getParam(), 0.101325f);
+		ParserUtils.updateValue("p2", reportData.getParam(), 0.101325f);
+		ParserUtils.updateValue("p3", reportData.getParam(), 0.101325f);
 
 		return reportData;
 	}

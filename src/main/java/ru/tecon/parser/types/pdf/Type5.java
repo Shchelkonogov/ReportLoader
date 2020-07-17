@@ -1,8 +1,9 @@
-package ru.tecon.parser.types;
+package ru.tecon.parser.types.pdf;
 
 import ru.tecon.parser.ParseException;
 import ru.tecon.parser.model.ParameterData;
 import ru.tecon.parser.model.ReportData;
+import ru.tecon.parser.types.ParserUtils;
 
 import java.math.BigDecimal;
 import java.nio.file.Paths;
@@ -46,16 +47,16 @@ public class Type5 {
 			"нет", "Time", "нет", "Дата", "Time", "G1", "G2", "нет", "p1", "p2",
 			"T3", "нет", "нет");
 
-	private static List<String> dbParamNameIntegr = Arrays.asList("Дата", "Qi", "T1", "T2", "T3", "V1i", "V2i", "p1", "p2",
-			"нет", "Timei", "нет", "нет", "нет", "Дата", "Timei", "G1i", "G2i", "нет", "нет",
-			"нет", "нет", "нет", "нет", "нет", "нет", "нет", "Timei", "V1i", "V1i", "V2i",
-			"V1i", "V1i", "V2i", "V1i",
-			"Дата", "Qi", "G1i", "G2i", "нет", "нет", "T1", "T2", "нет", "нет",
-			"Timei", "нет", "Дата", "Timei", "p1", "p2", "V1i", "V2i", "нет", "T3",
-			"нет", "нет", "нет", "нет", "нет", "нет", "нет", "нет", "Timei", "G2i",
-			"нет", "G1i", "V1i",
-			"Дата", "Qi", "G1i", "G2i", "нет", "нет", "нет", "T1", "T2", "нет",
-			"нет", "Timei", "нет", "Дата", "Timei", "G1i", "G2i", "нет", "p1", "p2",
+	private static List<String> dbParamNameIntegr = Arrays.asList("Дата", "Q", "T1", "T2", "T3", "V1", "V2", "p1", "p2",
+			"нет", "Time", "нет", "нет", "нет", "Дата", "Time", "G1", "G2", "нет", "нет",
+			"нет", "нет", "нет", "нет", "нет", "нет", "нет", "Time", "V1", "V1", "V2",
+			"V1", "V1", "V2", "V1",
+			"Дата", "Q", "G1", "G2", "нет", "нет", "T1", "T2", "нет", "нет",
+			"Time", "нет", "Дата", "Time", "p1", "p2", "V1", "V2", "нет", "T3",
+			"нет", "нет", "нет", "нет", "нет", "нет", "нет", "нет", "Time", "G2",
+			"нет", "G1", "V1",
+			"Дата", "Q", "G1", "G2", "нет", "нет", "нет", "T1", "T2", "нет",
+			"нет", "Time", "нет", "Дата", "Time", "G1", "G2", "нет", "p1", "p2",
 			"T3", "нет", "нет");
 
 	private Type5() {
@@ -442,6 +443,12 @@ public class Type5 {
 
 			throw new ParseException("Проверка не пройдена");
 		}
+
+		ParserUtils.updateValue("Time", reportData.getParam(), 3600);
+		ParserUtils.updateValue("Timei", reportData.getParamIntegr(), 3600);
+		ParserUtils.updateValue("p1", reportData.getParam(), 0.101325f);
+		ParserUtils.updateValue("p2", reportData.getParam(), 0.101325f);
+		ParserUtils.updateValue("p3", reportData.getParam(), 0.101325f);
 
 		return reportData;
 	}

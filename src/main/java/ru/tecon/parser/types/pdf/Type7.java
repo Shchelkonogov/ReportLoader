@@ -1,8 +1,9 @@
-package ru.tecon.parser.types;
+package ru.tecon.parser.types.pdf;
 
 import ru.tecon.parser.ParseException;
 import ru.tecon.parser.model.ParameterData;
 import ru.tecon.parser.model.ReportData;
+import ru.tecon.parser.types.ParserUtils;
 
 import java.math.BigDecimal;
 import java.nio.file.Paths;
@@ -45,14 +46,14 @@ public class Type7 {
             "G2", "V1", "V2", "T1", "нет", "T3", "p1", "p2", "Time", "p3", "Q", "G1",
             "V1", "T1", "T2", "p1", "p2", "Time");
 
-    private static List<String> dbParamNameIntegr = Arrays.asList("Дата", "Дата", "Qi", "G1i", "V1i", "G2i", "V2i",
-            "нет", "нет", "нет", "нет", "нет", "Timei", "нет", "нет", "нет", "нет", "Qi", "G1i",
-            "G2i", "нет", "нет", "нет", "нет", "Timei", "Qi", "G1i", "нет", "нет", "нет", "нет",
-            "Timei", "нет", "нет", "нет", "Qi", "Timei", "нет", "G2i", "нет", "нет", "Timei", "нет",
-            "V1i", "нет", "нет", "нет", "нет", "V2i", "нет", "нет", "нет", "нет", "Qi", "G1i", "G2i",
-            "V1i", "V2i", "нет", "нет", "нет", "нет", "нет", "Timei", "нет", "нет", "Qi", "G1i",
-            "G2i", "V1i", "V2i", "нет", "нет", "нет", "нет", "нет", "Timei", "нет", "Qi", "G1i",
-            "V1i", "нет", "нет", "нет", "нет", "Timei");
+    private static List<String> dbParamNameIntegr = Arrays.asList("Дата", "Дата", "Q", "G1", "V1", "G2", "V2",
+            "нет", "нет", "нет", "нет", "нет", "Time", "нет", "нет", "нет", "нет", "Q", "G1",
+            "G2", "нет", "нет", "нет", "нет", "Time", "Q", "G1", "нет", "нет", "нет", "нет",
+            "Time", "нет", "нет", "нет", "Q", "Time", "нет", "G2", "нет", "нет", "Time", "нет",
+            "V1", "нет", "нет", "нет", "нет", "V2", "нет", "нет", "нет", "нет", "Q", "G1", "G2",
+            "V1", "V2", "нет", "нет", "нет", "нет", "нет", "Time", "нет", "нет", "Q", "G1",
+            "G2", "V1", "V2", "нет", "нет", "нет", "нет", "нет", "Time", "нет", "Q", "G1",
+            "V1", "нет", "нет", "нет", "нет", "Time");
 
     private Type7() {
     }
@@ -323,6 +324,12 @@ public class Type7 {
 
             throw new ParseException("Проверка не пройдена");
         }
+
+        ParserUtils.updateValue("Time", reportData.getParam(), 3600);
+        ParserUtils.updateValue("Timei", reportData.getParamIntegr(), 3600);
+        ParserUtils.updateValue("p1", reportData.getParam(), 0.101325f);
+        ParserUtils.updateValue("p2", reportData.getParam(), 0.101325f);
+        ParserUtils.updateValue("p3", reportData.getParam(), 0.101325f);
 
         return reportData;
     }

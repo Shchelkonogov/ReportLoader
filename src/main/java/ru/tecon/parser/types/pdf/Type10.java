@@ -1,8 +1,9 @@
-package ru.tecon.parser.types;
+package ru.tecon.parser.types.pdf;
 
 import ru.tecon.parser.ParseException;
 import ru.tecon.parser.model.ParameterData;
 import ru.tecon.parser.model.ReportData;
+import ru.tecon.parser.types.ParserUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -38,10 +39,10 @@ public class Type10 {
 			"p1", "p2", "Q", "Time", "нет", "нет", "нет", "нет", "T3", "нет",
 			"нет", "нет", "нет", "нет", "нет", "Дата");
 
-	private static List<String> dbParamNameIntegr = Arrays.asList("Дата", "T1", "T2", "нет", "V1i", "G1i", "V2i", "G2i", "нет",
-			"p1", "p2", "нет", "Qi", "Timei", "нет", "нет", "нет", "нет", "нет", "нет",
-			"T3", "Дата", "нет", "нет", "нет", "Дата", "T1", "T2", "нет", "V1i", "G1i", "V2i", "G2i", "нет",
-			"p1", "p2", "Qi", "Timei", "нет", "нет", "нет", "нет", "T3", "нет",
+	private static List<String> dbParamNameIntegr = Arrays.asList("Дата", "T1", "T2", "нет", "V1", "G1", "V2", "G2", "нет",
+			"p1", "p2", "нет", "Q", "Time", "нет", "нет", "нет", "нет", "нет", "нет",
+			"T3", "Дата", "нет", "нет", "нет", "Дата", "T1", "T2", "нет", "V1", "G1", "V2", "G2", "нет",
+			"p1", "p2", "Q", "Time", "нет", "нет", "нет", "нет", "T3", "нет",
 			"нет", "нет", "нет", "нет", "нет", "Дата");
 
 	private Type10() {
@@ -450,6 +451,12 @@ public class Type10 {
 
 			throw new ParseException("Проверка не пройдена");
 		}
+
+		ParserUtils.updateValue("Time", reportData.getParam(), 3600);
+		ParserUtils.updateValue("Timei", reportData.getParamIntegr(), 3600);
+		ParserUtils.updateValue("p1", reportData.getParam(), 0.101325f);
+		ParserUtils.updateValue("p2", reportData.getParam(), 0.101325f);
+		ParserUtils.updateValue("p3", reportData.getParam(), 0.101325f);
 
 		return reportData;
 	}

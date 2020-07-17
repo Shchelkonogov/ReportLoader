@@ -4,8 +4,8 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.StringJoiner;
 
@@ -44,9 +44,13 @@ public class ParameterData implements Serializable {
 				BigDecimal bigDecimal2 = new BigDecimal(o2);
 				return bigDecimal1.compareTo(bigDecimal2);
 			} catch (NumberFormatException e) {
-				LocalDate localDate1 = LocalDate.parse(o1, DateTimeFormatter.ofPattern("dd.MM.yyyy"));
-				LocalDate localDate2 = LocalDate.parse(o2, DateTimeFormatter.ofPattern("dd.MM.yyyy"));
-				return localDate1.compareTo(localDate2);
+				try {
+					LocalDate localDate1 = LocalDate.parse(o1, DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+					LocalDate localDate2 = LocalDate.parse(o2, DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+					return localDate1.compareTo(localDate2);
+				} catch (DateTimeParseException ignore) {
+					return 0;
+				}
 			}
 		});
 	}

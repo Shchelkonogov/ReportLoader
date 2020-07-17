@@ -1,4 +1,4 @@
-package ru.tecon.parser.types;
+package ru.tecon.parser.types.pdf;
 
 import com.google.common.collect.Range;
 
