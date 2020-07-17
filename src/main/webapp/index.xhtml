@@ -16,7 +16,7 @@
 <h:body style="margin: 0;">
     <h:form>
         <p:remoteCommand name="updateTree" action="#{uploadService.updateTreeData}" update="treeTable"/> <!--oncomplete="unsetWidth()"-->
-        <p:remoteCommand name="checkUpdate" action="#{uploadService.checkUpdate}" />
+        <p:remoteCommand name="checkUpdate" action="#{uploadService.checkUpdate(true)}" />
     </h:form>
     <h:form id="upload" enctype="multipart/form-data">
         <h:inputFile id="file" onchange="uploadFile()"
@@ -87,7 +87,7 @@
             <p:column headerText="Управление" style="width: 100px; text-align: center;">
                 <p:outputPanel id="controlColumn">
                     <p:commandLink rendered="#{uploadService.checkControlRender(document.status, document.name)}"
-                                   value="Связать" action="#{uploadService.save(document.name)}" />
+                                   value="Связать" action="#{uploadService.initAssociateDialog(document.name)}" />
                 </p:outputPanel>
             </p:column>
         </p:treeTable>

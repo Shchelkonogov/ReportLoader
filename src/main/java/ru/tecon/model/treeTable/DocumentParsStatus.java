@@ -11,7 +11,7 @@ public final class DocumentParsStatus {
     /**
      * Объект без статуса
      */
-    static final int NEW = 0;
+    public static final int NEW = 0;
 
     /**
      * Объект находится в состоянии разбора

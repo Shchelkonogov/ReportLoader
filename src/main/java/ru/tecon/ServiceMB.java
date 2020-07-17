@@ -4,7 +4,8 @@ import org.primefaces.PrimeFaces;
 import org.primefaces.event.SelectEvent;
 import org.primefaces.model.DefaultTreeNode;
 import org.primefaces.model.TreeNode;
-import ru.tecon.model.Document;
+import ru.tecon.model.treeTable.Document;
+import ru.tecon.model.treeTable.DocumentParsStatus;
 import ru.tecon.model.ParserResult;
 import ru.tecon.parser.ParseException;
 import ru.tecon.parser.ParseFile;
@@ -20,8 +21,11 @@ import javax.inject.Named;
 import javax.servlet.ServletContext;
 import java.io.*;
 import java.net.URLEncoder;
+import java.nio.channels.FileChannel;
+import java.nio.file.*;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -33,24 +37,30 @@ public class ServiceMB implements Serializable {
     private static Logger log = Logger.getLogger(ServiceMB.class.getName());
 
     private static final Map<String, String> DOCUMENT_TYPES = Stream.of(new String[][] {
-            {".html", "Единый формат МОЭК"},
-            {".pdf", "PDF файлы"},
-            {".xml", "XML файлы"}
+            {"html", "Единый формат МОЭК"},
+            {"pdf", "PDF файлы"},
+            {"xml", "XML файлы"}
     }).collect(Collectors.toMap(key -> key[0], value -> value[1]));
+
+    private static final Map<String, String> CONTENT_TYPES = Stream.of(new String[][] {
+            {"html", "text/html"},
+            {"pdf", "application/pdf"},
+            {"xml", "application/xml"}
+    }).collect(Collectors.toMap(key -> key[0], value -> value[1]));
+
+    private static String rootPath;
+
+    private ExecutorService service = Executors.newSingleThreadExecutor();
 
     private UUID uuid;
 
     private TreeNode root;
+    private TreeNode rootFilter;
     private List<Document> treeData = new ArrayList<>();
     private Map<String, DefaultTreeNode> foldersMap = new HashMap<>();
 
-    private boolean update = false;
     private boolean parseStatus = false;
     private Set<String> updateItems = new CopyOnWriteArraySet<>();
-
-//    private boolean showData = false;
-//    private Map<String, ParseData> parseDataMap = new HashMap<>();
-//    private ParseData showParseData;
 
     private Map<String, ParserResult> parserResults = new HashMap<>();
 
@@ -68,68 +78,75 @@ public class ServiceMB implements Serializable {
     @PostConstruct
     private void init() {
         uuid = UUID.randomUUID();
-        root = new DefaultTreeNode(new Document("Files", "-", -1), null);
+        root = new DefaultTreeNode(new Document("Files", "-"), null);
+
+        ServletContext sc = (ServletContext) FacesContext.getCurrentInstance().getExternalContext().getContext();
+        rootPath = System.getProperty("user.dir") + sc.getInitParameter("upload.location") + "/" + uuid + "/";
     }
 
+    /**
+     * Метод для обновления модели данных treeTable
+     */
     public void updateTreeData() {
         treeData.clear();
         root.getChildren().clear();
         foldersMap.clear();
-        ServletContext context = (ServletContext) FacesContext.getCurrentInstance().getExternalContext().getContext();
-        File folder = new File(System.getProperty("user.dir") + context.getInitParameter("upload.location") + "/" + uuid);
-        try {
-            if (folder.exists()) {
-                int i = 0;
-                File[] files = Objects.requireNonNull(folder.listFiles());
-                Set<String> extensions = Arrays.stream(files).map(file -> getExtension(file.getName())).collect(Collectors.toSet());
+
+        Path folder = Paths.get(rootPath);
+
+        if (Files.exists(folder) && Files.isDirectory(folder)) {
+            try {
+                List<Path> paths = Files.walk(folder)
+                        .filter(path -> Files.isRegularFile(path))
+                        .collect(Collectors.toList());
+
+                Set<String> extensions = paths.stream()
+                        .map(Utils::getExtension)
+                        .collect(Collectors.toSet());
+
                 for (String extension: extensions) {
-                    foldersMap.put(extension, new DefaultTreeNode(new Document(extension, "0/0/0", i), root));
-                    i++;
+                    foldersMap.put(extension, new DefaultTreeNode(new Document(DOCUMENT_TYPES.get(extension), "0/0/0"), root));
                 }
-                for (File file: files) {
-                    DefaultTreeNode parent = foldersMap.get(getExtension(file.getName()));
-                    Document doc = new Document(file.getName(), file.length() + " Байт", parent.getChildCount());
+
+                for (Path path: paths) {
+                    DefaultTreeNode parent = foldersMap.get(Utils.getExtension(path));
+                    Document doc = new Document(path.getFileName().toString(),
+                            Utils.humanReadableByteCountBin(FileChannel.open(path).size()));
+
                     treeData.add(doc);
-                    int newSize = Integer.parseInt(((Document) parent.getData()).getSize().split("/")[2]) + 1;
-                    ((Document) parent.getData()).setSize("0/0/" + newSize);
                     new DefaultTreeNode(doc, parent);
                 }
+
+                for (Map.Entry<String, DefaultTreeNode> entry: foldersMap.entrySet()) {
+                    ((Document) entry.getValue().getData()).setSize("0/0/" + entry.getValue().getChildCount());
+                }
+            } catch (IOException e) {
+                log.log(Level.WARNING, "read files error", e);
             }
-        } catch (NullPointerException e) {
-            log.info("No files in folder: " + folder);
         }
     }
 
-    private String getExtension(String name) {
-        int lastIndexOf = name.lastIndexOf(".");
-        if (lastIndexOf == -1) {
-            return "";
-        }
-        return DOCUMENT_TYPES.get(name.substring(lastIndexOf).toLowerCase());
-    }
-
+    /**
+     * Метод для скачивания файла с сервера приложений
+     * @param fileName имя файла
+     * @throws IOException если файл не найден
+     */
     public void download(String fileName) throws IOException {
-//        if (parseDataMap.containsKey(fileName) && !showData) {
-//            showData = true;
-//        }
-//        showParseData = parseDataMap.get(fileName);
-
         FacesContext fc = FacesContext.getCurrentInstance();
         ExternalContext ec = fc.getExternalContext();
 
-        ServletContext context = (ServletContext) FacesContext.getCurrentInstance().getExternalContext().getContext();
-        File file = new File(System.getProperty("user.dir") + context.getInitParameter("upload.location") + "/" + uuid + "/" + fileName);
+        Path path = Paths.get(rootPath + fileName);
 
         ec.responseReset();
-        ec.setResponseContentType("application/pdf; charset=UTF-8");
+        ec.setResponseContentType(CONTENT_TYPES.get(Utils.getExtension(fileName)) + "; charset=UTF-8");
         ec.setResponseHeader("Content-Disposition", "attachment; filename=\"" + URLEncoder.encode(fileName, "UTF-8") + "\"");
         ec.setResponseCharacterEncoding("UTF-8");
 
-        try (InputStream fileInputStream = new FileInputStream(file);
+        try (InputStream inputStream = Files.newInputStream(path);
              OutputStream output = ec.getResponseOutputStream()) {
             byte[] bytesBuffer = new byte[2048];
             int bytesRead;
-            while ((bytesRead = fileInputStream.read(bytesBuffer)) > 0) {
+            while ((bytesRead = inputStream.read(bytesBuffer)) > 0) {
                 output.write(bytesBuffer, 0, bytesRead);
             }
 
@@ -138,27 +155,37 @@ public class ServiceMB implements Serializable {
         }
     }
 
+    /**
+     * Метод проверяет, требуется ли рисовать кнопку "просмотр файла"
+     * @param name имя файла
+     * @return true - если кнопку отображать и наоборот
+     */
     public boolean checkRender(String name) {
-        return !foldersMap.containsKey(name);
+        return !DOCUMENT_TYPES.containsValue(name);
     }
 
+    /**
+     * Мотод проверяет, требуется ли отображать кнопку "связать"
+     * @param status статус разбора файла
+     * @param name имя файла
+     * @return true - если кнопку отображать и наоборот
+     */
     public boolean checkControlRender(int status, String name) {
-        if (foldersMap.containsKey(name)) {
-            return false;
-        }
-        return ((status != 2) && (status != -1) && (status != 1));
+        return ((checkRender(name)) && ((status == DocumentParsStatus.ERROR) || (status == DocumentParsStatus.NOTICE)));
     }
 
-    private void updateHeatSystemList(String objectId) {
-        heatSystemList = ejbParser.getHeatSystemNames(objectId);
-    }
-
-    public void save(String name) {
+    /**
+     * Метод запускает диалоговое окно по нажатию кнопки "связать"
+     * @param name имя файла
+     */
+    public void initAssociateDialog(String name) {
         reportName = name;
+
         searchList.clear();
         searchText = "";
         searchSelectItem = "";
         selectHeatSystem = "";
+
         String dialogName = "dlg2";
         if (parserResults.containsKey(reportName)) {
             switch (parserResults.get(reportName).getStatus()) {
@@ -168,15 +195,19 @@ public class ServiceMB implements Serializable {
                 }
                 case 1: {
                     dialogName = "dlg3";
-                    updateHeatSystemList(parserResults.get(reportName).getObjectId());
+                    ejbParser.getHeatSystemNames(parserResults.get(reportName).getObjectId());
                     break;
                 }
             }
         }
+
         PrimeFaces.current().ajax().update("dialog");
         PrimeFaces.current().executeScript("PF('" + dialogName + "').show()");
     }
 
+    /**
+     * Метод ассоциирует выбранный объект с данными в бд
+     */
     public void associate() {
         ReportData data = parserResults.get(reportName).getReportData();
 
@@ -187,34 +218,240 @@ public class ServiceMB implements Serializable {
         checkDBAssociate(data);
     }
 
+    /**
+     * Метод ассоциирует выбранную теплосистему с данными в бд
+     */
     public void associateHeatSystem() {
         ReportData data = parserResults.get(reportName).getReportData();
-        data.setReportType(selectHeatSystem);
+        data.setReportType(selectHeatSystem + "!important");
 
         checkDBAssociate(data);
     }
 
+    /**
+     * Метод пытается ассоциировать разобранные данные с бд
+     * @param data разобранные данные
+     */
     private void checkDBAssociate(ReportData data) {
-        ParserResult result = ejbParser.parse(data);
-
         for (Document doc: treeData) {
             if (doc.getName().equals(reportName)) {
-                if (result.getStatus() == 2) {
-                    doc.setStatus(2);
-                    parserResults.remove(reportName);
-                    System.gc();
-                } else {
-                    result.setReportData(data);
-                    parserResults.put(doc.getName(), result);
-                    doc.setStatus(4);
+                try {
+                    ParserResult result = ejbParser.parse(data).get(5, TimeUnit.SECONDS);
+
+                    if (result.getStatus() == 2) {
+                        doc.setStatus(DocumentParsStatus.OK);
+                        parserResults.remove(reportName);
+                    } else {
+                        result.setReportData(data);
+                        parserResults.put(doc.getName(), result);
+                        doc.setStatus(DocumentParsStatus.NOTICE);
+                    }
+                } catch (InterruptedException ignore) {
+                } catch (ExecutionException e) {
+                    parserResults.put(doc.getName(), new ParserResult(4, "", "Неизвестная ошибка", ""));
+                    doc.setStatus(DocumentParsStatus.ERROR);
+                    log.warning("Неизвестная ошибка");
+                } catch (TimeoutException e) {
+                    parserResults.put(doc.getName(), new ParserResult(4, "", "Превышенно время ожидания результата", ""));
+                    doc.setStatus(DocumentParsStatus.ERROR);
+                    log.warning("Превышенно время ожидания результата");
+                } catch (NullPointerException e) {
+                    parserResults.put(doc.getName(), new ParserResult(4, "", "Серверная ошибка", ""));
+                    doc.setStatus(DocumentParsStatus.ERROR);
+                    log.warning("Серверная ошибка");
                 }
 
-                int id = ((Document) foldersMap.get(getExtension(doc.getName())).getData()).getId();
-                PrimeFaces.current().ajax().update("treeTable:treeTableData:" + id + "_" + doc.getId() + ":sizeColumn");
-                PrimeFaces.current().ajax().update("treeTable:treeTableData:" + id + "_" + doc.getId() + ":iconColumn");
-                PrimeFaces.current().ajax().update("treeTable:treeTableData:" + id + "_" + doc.getId() + ":controlColumn");
+                updateParentSizeAndStatus(foldersMap.get(Utils.getExtension(doc.getName())), doc.getStatus(), true);
+
+                updateItems.add("treeTable:treeTableData:" + getNodeId(doc.getName(), 0));
+                updateItems.add("treeTable:treeTableData:" + getNodeId(doc.getName(), 1));
+                checkUpdate(false);
+
                 break;
             }
+        }
+    }
+
+    /**
+     * Метод начинает разбор всех файлов
+     */
+    public void parse() {
+        log.info("Start parsing files");
+        parseStatus = true;
+        parserResults.clear();
+
+        new Thread(() -> {
+            for (Document doc: treeData) {
+                TreeNode parent = foldersMap.get(Utils.getExtension(doc.getName()));
+
+                ((Document) parent.getData()).setStatus(DocumentParsStatus.WORKING);
+                doc.setStatus(DocumentParsStatus.WORKING);
+
+                String parentId = getNodeId(doc.getName(), 0);
+                String nodeId = getNodeId(doc.getName(), 1);
+
+                updateItems.add("treeTable:treeTableData:" + parentId);
+                updateItems.add("treeTable:treeTableData:" + nodeId);
+
+                try {
+                    Future<ReportData> future = service.submit(() -> ParseFile.parseFile(rootPath + doc.getName()));
+
+                    ReportData data = future.get(5, TimeUnit.SECONDS);
+
+                    ParserResult result = ejbParser.parse(data).get(5, TimeUnit.SECONDS);
+
+                    if (result.getStatus() == 2) {
+                        doc.setStatus(DocumentParsStatus.OK);
+                    } else {
+                        result.setReportData(data);
+                        parserResults.put(doc.getName(), result);
+                        doc.setStatus(DocumentParsStatus.NOTICE);
+                    }
+                } catch (InterruptedException ignore) {
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof ParseException) {
+                        ParseException parseException = (ParseException) e.getCause();
+                        parserResults.put(doc.getName(), new ParserResult(4, "", parseException.getMessage(), ""));
+                        doc.setStatus(DocumentParsStatus.ERROR);
+                        log.warning(parseException.getMessage());
+                    } else {
+                        parserResults.put(doc.getName(), new ParserResult(4, "", "Неизвестная ошибка", ""));
+                        doc.setStatus(DocumentParsStatus.ERROR);
+                        log.warning("Неизвестная ошибка");
+                    }
+                } catch (TimeoutException e) {
+                    parserResults.put(doc.getName(), new ParserResult(4, "", "Превышенно время ожидания результата", ""));
+                    doc.setStatus(DocumentParsStatus.ERROR);
+                    log.warning("Превышенно время ожидания результата");
+                } catch (NullPointerException e) {
+                    parserResults.put(doc.getName(), new ParserResult(4, "", "Серверная ошибка", ""));
+                    doc.setStatus(DocumentParsStatus.ERROR);
+                    log.warning("Серверная ошибка");
+                }
+
+                updateParentSizeAndStatus(parent, doc.getStatus(), false);
+
+                updateItems.add("treeTable:treeTableData:" + parentId);
+                updateItems.add("treeTable:treeTableData:" + nodeId);
+            }
+            log.info("parse files is finish");
+            parseStatus = false;
+        }).start();
+    }
+
+    /**
+     * Метод обновляет статус и размер (статус разбора) родительского узла
+     * @param parent родительский узел
+     * @param currentNodeStatus статус разбора элемента
+     * @param update когда первый раз разбираем (true -> ok++; bad--;)
+     *               когда доразбираем не разобранные (false -> ok++; bad++;)
+     */
+    private void updateParentSizeAndStatus(TreeNode parent, int currentNodeStatus, boolean update) {
+        Set<Integer> status = parent.getChildren().stream()
+                .map(treeNode -> ((Document) treeNode.getData()).getStatus())
+                .collect(Collectors.toSet());
+
+        if (!status.contains(DocumentParsStatus.WORKING) && !status.contains(DocumentParsStatus.NEW)) {
+            if ((status.size() == 1) && (!status.contains(DocumentParsStatus.NOTICE))) {
+                ((Document) parent.getData()).setStatus(status.iterator().next());
+            } else {
+                ((Document) parent.getData()).setStatus(DocumentParsStatus.NOTICE_NODE);
+            }
+        }
+
+        int count = Integer.parseInt(((Document) parent.getData()).getSize().split("/")[2]);
+        int ok = Integer.parseInt(((Document) parent.getData()).getSize().split("/")[0]);
+        int bad = Integer.parseInt(((Document) parent.getData()).getSize().split("/")[1]);
+
+        if (currentNodeStatus == DocumentParsStatus.OK) {
+            ok++;
+            if (update) {
+                bad--;
+            }
+        }
+        if (!update && ((currentNodeStatus == DocumentParsStatus.ERROR) || (currentNodeStatus == DocumentParsStatus.NOTICE))) {
+            bad++;
+        }
+        ((Document) parent.getData()).setSize(ok + "/" + bad + "/" + count);
+    }
+
+    /**
+     * Метод определяет id элемента treeTable
+     * @param name имя элемента
+     * @param level уровень элемента 0 - узел; 1 - лепесток
+     * @return возвращает id
+     */
+    private String getNodeId(String name, int level) {
+        TreeNode rootNode = Objects.nonNull(rootFilter) ? rootFilter : root;
+
+        for (TreeNode parent: rootNode.getChildren()) {
+            for (TreeNode node: parent.getChildren()) {
+                if (((Document) node.getData()).getName().equals(name)) {
+                    switch (level) {
+                        case 0: return node.getParent().getRowKey();
+                        case 1: return node.getRowKey();
+                        default: return null;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    public String getStatusImage(int status) {
+        switch (status) {
+            case DocumentParsStatus.WORKING: {
+                return "pi pi-spin pi-spinner";
+            }
+            case DocumentParsStatus.OK: {
+                return "pi pi-check";
+            }
+            case DocumentParsStatus.ERROR: {
+                return "pi pi-times";
+            }
+            case DocumentParsStatus.NOTICE:
+            case DocumentParsStatus.NOTICE_NODE: {
+                return "pi pi-info";
+            }
+            default: return "";
+        }
+    }
+
+    public String getColor(int status) {
+        switch (status) {
+            case DocumentParsStatus.OK: {
+                return "green";
+            }
+            case DocumentParsStatus.ERROR: {
+                return "red";
+            }
+            case DocumentParsStatus.NOTICE:
+            case DocumentParsStatus.NOTICE_NODE: {
+                return "salmon";
+            }
+            default: return "black";
+        }
+    }
+
+    /**
+     * Метод обновляет элементы treeTable
+     * @param checkTimer true - если требуется проверить js таймер, для постоянного обновления
+     */
+    public void checkUpdate(boolean checkTimer) {
+        if (!updateItems.isEmpty()) {
+            Set<String> copy = new HashSet<>(updateItems);
+            updateItems.removeAll(copy);
+
+            copy.forEach(s -> {
+                PrimeFaces.current().ajax().update(s + ":sizeColumn");
+                PrimeFaces.current().ajax().update(s + ":iconColumn");
+                PrimeFaces.current().ajax().update(s + ":controlColumn");
+            });
+
+//            PrimeFaces.current().executeScript("unsetWidth();");
+        }
+        if (checkTimer && !parseStatus) {
+            PrimeFaces.current().executeScript("stop(); PF('parseButton').enable();");
         }
     }
 
@@ -266,143 +503,6 @@ public class ServiceMB implements Serializable {
 
     public void clear() {
         searchList.clear();
-    }
-
-    public void parse() {
-        log.info("Start parsing files");
-        parseStatus = true;
-//        parseDataMap.clear();
-        parserResults.clear();
-        PrimeFaces.current().executeScript("start();");
-
-        ServletContext context = (ServletContext) FacesContext.getCurrentInstance().getExternalContext().getContext();
-        String location = context.getInitParameter("upload.location");
-
-        new Thread(() -> {
-            for (Document doc: treeData) {
-                doc.setStatus(1);
-                TreeNode parent = foldersMap.get(getExtension(doc.getName()));
-                ((Document) parent.getData()).setStatus(1);
-
-                updateItems.add("treeTable:treeTableData:" + ((Document) parent.getData()).getId());
-                updateItems.add("treeTable:treeTableData:" + ((Document) parent.getData()).getId() + "_" + doc.getId());
-                update = true;
-
-                try {
-                    ReportData data = ParseFile.parseFile(System.getProperty("user.dir") + location + "/" + uuid + "/" + doc.getName());
-                    ParserResult result = ejbParser.parse(data);
-                    if (result.getStatus() == 2) {
-                        doc.setStatus(2);
-                        System.gc();
-                    } else {
-                        result.setReportData(data);
-                        parserResults.put(doc.getName(), result);
-                        doc.setStatus(4);
-                    }
-                } catch (ParseException e) {
-                    parserResults.put(doc.getName(), new ParserResult(4, "", e.getMessage(), ""));
-                    doc.setStatus(3);
-                    log.warning(e.getMessage());
-                }
-
-//                try {
-//                    Thread.sleep(ThreadLocalRandom.current().nextInt(2000));
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-
-
-//                parseDataMap.put(doc.getName(), new ParseData(doc.getName(), "1", "1", "1", "1", "1", "1"));
-//                doc.setStatus(2);
-                boolean check = true;
-                for (TreeNode node: parent.getChildren()) {
-                    if ((((Document) node.getData()).getStatus() != 2) && (((Document) node.getData()).getStatus() != 3) &&
-                            (((Document) node.getData()).getStatus() != 4)) {
-                        check = false;
-                        break;
-                    }
-                }
-                if (check) {
-                    Set<Integer> status = new HashSet<>();
-                    parent.getChildren().forEach(treeNode -> status.add(((Document) treeNode.getData()).getStatus()));
-
-                    if (status.size() == 1) {
-                        ((Document) parent.getData()).setStatus(status.iterator().next());
-                    } else {
-                        ((Document) parent.getData()).setStatus(4);
-                    }
-                }
-
-                int count = Integer.parseInt(((Document) parent.getData()).getSize().split("/")[2]);
-                int ok = Integer.parseInt(((Document) parent.getData()).getSize().split("/")[0]);
-                int bad = Integer.parseInt(((Document) parent.getData()).getSize().split("/")[1]);
-                if (doc.getStatus() == 2) {
-                    ok++;
-                }
-                if ((doc.getStatus() == 3) || (doc.getStatus() == 4)) {
-                    bad++;
-                }
-                ((Document) parent.getData()).setSize(ok + "/" + bad + "/" + count);
-
-                updateItems.add("treeTable:treeTableData:" + ((Document) parent.getData()).getId());
-                updateItems.add("treeTable:treeTableData:" + ((Document) parent.getData()).getId() + "_" + doc.getId());
-                update = true;
-            }
-            log.info("parse files is finish");
-            parseStatus = false;
-        }).start();
-    }
-
-    public String getStatusImage(int status) {
-        switch (status) {
-            case 1: {
-                return "pi pi-spin pi-spinner";
-            }
-            case 2: {
-                return "pi pi-check";
-            }
-            case 3: {
-                return "pi pi-times";
-            }
-            case 4: {
-                return "pi pi-info";
-            }
-            default: return "";
-        }
-    }
-
-    public String getColor(int status) {
-        switch (status) {
-            case 2: {
-                return "green";
-            }
-            case 3: {
-                return "red";
-            }
-            case 4: {
-                return "salmon";
-            }
-            default: return "black";
-        }
-    }
-
-    public void checkUpdate() {
-        if (update) {
-            update = false;
-            Set<String> copy = new HashSet<>(updateItems);
-            updateItems.removeAll(copy);
-
-            copy.forEach(s -> {
-                PrimeFaces.current().ajax().update(s + ":sizeColumn");
-                PrimeFaces.current().ajax().update(s + ":iconColumn");
-                PrimeFaces.current().ajax().update(s + ":controlColumn");
-            });
-
-//            PrimeFaces.current().executeScript("unsetWidth();");
-        }
-        if (!parseStatus) {
-            PrimeFaces.current().executeScript("stop(); PF('parseButton').enable();");
-        }
     }
 
     public boolean isSizeRender(String text) {
@@ -469,11 +569,12 @@ public class ServiceMB implements Serializable {
         this.heatSystemList = heatSystemList;
     }
 
-    //    public boolean isShowData() {
-//        return showData;
-//    }
-//
-//    public ParseData getShowParseData() {
-//        return showParseData;
-//    }
+    public TreeNode getRootFilter() {
+        return rootFilter;
+    }
+
+    public void setRootFilter(TreeNode rootFilter) {
+        PrimeFaces.current().executeScript("addListener()");
+        this.rootFilter = rootFilter;
+    }
 }
