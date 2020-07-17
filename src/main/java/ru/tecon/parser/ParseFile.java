@@ -9,14 +9,16 @@ import org.apache.tika.parser.ParseContext;
 import org.apache.tika.sax.BodyContentHandler;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
+import ru.tecon.Utils;
 import ru.tecon.parser.model.ReportData;
 import ru.tecon.parser.types.*;
 import ru.tecon.parser.types.html.HTMLType;
 import ru.tecon.parser.types.xml.XMLType;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class ParseFile {
 	
@@ -27,12 +29,9 @@ public class ParseFile {
 
 	public static ReportData parseFile(String filePath) throws ParseException {
 		String text;
-		switch (filePath.substring(filePath.lastIndexOf(".") + 1).toLowerCase()) {
+		switch (Utils.getExtension(filePath)) {
 			case "pdf": {
-				text = getText(new File(filePath));
-				if (text == null) {
-					throw new ParseException("can't get text from file");
-				}
+				text = getText(Paths.get(filePath));
 				if (Type7.checkType(text)) {
 					return Type7.getData(text, filePath);
 				}
@@ -54,7 +53,7 @@ public class ParseFile {
 				if (Type10.checkType(text)) {
 					return Type10.getData(text, filePath);
 				}
-				throw new ParseException("don't have pdf parser");
+				throw new ParseException("Неизвестный шаблон pdf файла");
 			}
 			case "html": {
 				return HTMLType.getData(filePath);
@@ -62,20 +61,18 @@ public class ParseFile {
 			case "xml": {
 				return XMLType.getData(filePath);
 			}
-			default: throw new ParseException("don't have file parser");
+			default: throw new ParseException("Неизвестный тип файла");
 		}
 	}
 	
-	private static String getText(File file) {
-		try {
-			Metadata metadata = new Metadata();
-			AutoDetectParser parser = new AutoDetectParser(tikaConfig);
-			ContentHandler handler = new BodyContentHandler(-1);
-			TikaInputStream stream = TikaInputStream.get(new FileInputStream(file));
-			parser.parse(stream, handler, metadata, new ParseContext());
+	private static String getText(Path path) throws ParseException {
+		AutoDetectParser parser = new AutoDetectParser(tikaConfig);
+		ContentHandler handler = new BodyContentHandler(-1);
+		try (TikaInputStream stream = TikaInputStream.get(Files.newInputStream(path))) {
+			parser.parse(stream, handler, new Metadata(), new ParseContext());
 			return handler.toString();
 		} catch (IOException | SAXException | TikaException e) {
-			return null;
+			throw new ParseException("Невозможно прочитать файл");
 		}
 	}
 }
