@@ -279,6 +279,7 @@ public class ServiceMB implements Serializable {
         log.info("Start parsing files");
         parseStatus = true;
         parserResults.clear();
+        PrimeFaces.current().executeScript("start();");
 
         new Thread(() -> {
             for (Document doc: treeData) {
