@@ -95,8 +95,8 @@ public class ServiceMB implements Serializable {
         Path folder = Paths.get(rootPath);
 
         if (Files.exists(folder) && Files.isDirectory(folder)) {
-            try {
-                List<Path> paths = Files.walk(folder)
+            try (Stream<Path> pathStream = Files.walk(folder)) {
+                List<Path> paths = pathStream
                         .filter(path -> Files.isRegularFile(path))
                         .collect(Collectors.toList());
 
