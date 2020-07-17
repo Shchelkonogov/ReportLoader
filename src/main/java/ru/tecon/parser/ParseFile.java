@@ -11,8 +11,8 @@ import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 import ru.tecon.Utils;
 import ru.tecon.parser.model.ReportData;
-import ru.tecon.parser.types.*;
 import ru.tecon.parser.types.html.HTMLType;
+import ru.tecon.parser.types.pdf.*;
 import ru.tecon.parser.types.xml.XMLType;
 
 import java.io.IOException;
