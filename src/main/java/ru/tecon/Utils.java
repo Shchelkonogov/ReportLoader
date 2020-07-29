@@ -1,13 +1,35 @@
 package ru.tecon;
 
+import ru.tecon.beanInterface.LoadOPCRemote;
+
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import java.nio.file.Path;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
+import java.util.Hashtable;
 
 /**
  * Класс с сервисными функциями
  */
 public class Utils {
+
+    /**
+     * Метод возвращает ejb bean класс для работы с базой
+     * @return ejb класс
+     * @throws NamingException ошибка
+     */
+    public static LoadOPCRemote loadRMI() throws NamingException {
+        Hashtable<String, String> ht = new Hashtable<>();
+        ht.put(Context.INITIAL_CONTEXT_FACTORY, "weblogic.jndi.WLInitialContextFactory");
+        //TODO Написать нормально
+        ht.put(Context.PROVIDER_URL, "t3://172.16.4.26:7001");
+
+        Context ctx = new InitialContext(ht);
+
+        return  (LoadOPCRemote) ctx.lookup("ejb.LoadOPC#ru.tecon.beanInterface.LoadOPCRemote");
+    }
 
     /**
      * Перевод байтов в читаемый вид (1024)

@@ -36,7 +36,7 @@ public class UploadServlet extends HttpServlet {
                 req.getParameter("UUID") + "/");
 
         if (!Files.exists(uploadPath)) {
-            Files.createDirectory(uploadPath);
+            Files.createDirectories(uploadPath);
         }
 
         try (Stream<Path> pathStream = Files.walk(uploadPath)) {

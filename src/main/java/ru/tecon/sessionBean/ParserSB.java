@@ -1,5 +1,6 @@
 package ru.tecon.sessionBean;
 
+import ru.tecon.Utils;
 import ru.tecon.beanInterface.LoadOPCRemote;
 import ru.tecon.model.DataModel;
 import ru.tecon.model.ParserResult;
@@ -9,6 +10,7 @@ import ru.tecon.parser.model.ReportData;
 
 import javax.annotation.Resource;
 import javax.ejb.*;
+import javax.naming.NamingException;
 import javax.sql.DataSource;
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -69,8 +71,8 @@ public class ParserSB implements ParserLocal {
     @Resource(name = "jdbc/DataSourceUpload")
     private DataSource dsUpload;
 
-    @EJB(name = "LoadOPC", mappedName = "ejb/LoadOPC")
-    private LoadOPCRemote loadOPCRemote;
+//    @EJB(name = "LoadOPC", mappedName = "ejb/LoadOPC")
+//    private LoadOPCRemote loadOPCRemote;
 
     @EJB(name = "ParserBean")
     private ParserLocal ejbLocal;
@@ -150,7 +152,12 @@ public class ParserSB implements ParserLocal {
             generateData(integrateData, stm, data.getParamIntegr(), system, objectId, -3);
             generateData(histData, stm, data.getParam(), system, objectId, 0);
 
-            loadOPCRemote.putData(integrateData);
+            // TODO Написать нормально
+            try {
+                Utils.loadRMI().putData(integrateData);
+            } catch (NamingException e) {
+                e.printStackTrace();
+            }
 
             ejbLocal.uploadSecondaryData(histData);
 
