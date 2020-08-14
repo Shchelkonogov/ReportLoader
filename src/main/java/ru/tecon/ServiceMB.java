@@ -105,7 +105,7 @@ public class ServiceMB implements Serializable {
                         .collect(Collectors.toSet());
 
                 for (String extension: extensions) {
-                    foldersMap.put(extension, new DefaultTreeNode(new Document(DOCUMENT_TYPES.get(extension), "0/0/0"), root));
+                    foldersMap.put(extension, new DefaultTreeNode(new Document(DOCUMENT_TYPES.get(extension), "0/0/0/0"), root));
                 }
 
                 for (Path path: paths) {
@@ -118,7 +118,7 @@ public class ServiceMB implements Serializable {
                 }
 
                 for (Map.Entry<String, DefaultTreeNode> entry: foldersMap.entrySet()) {
-                    ((Document) entry.getValue().getData()).setSize("0/0/" + entry.getValue().getChildCount());
+                    ((Document) entry.getValue().getData()).setSize("0/0/0/" + entry.getValue().getChildCount());
                 }
             } catch (IOException e) {
                 log.log(Level.WARNING, "read files error", e);
@@ -360,20 +360,26 @@ public class ServiceMB implements Serializable {
             }
         }
 
-        int count = Integer.parseInt(((Document) parent.getData()).getSize().split("/")[2]);
+        int count = Integer.parseInt(((Document) parent.getData()).getSize().split("/")[3]);
         int ok = Integer.parseInt(((Document) parent.getData()).getSize().split("/")[0]);
         int bad = Integer.parseInt(((Document) parent.getData()).getSize().split("/")[1]);
+        int manual = Integer.parseInt(((Document) parent.getData()).getSize().split("/")[2]);
 
         if (currentNodeStatus == DocumentParsStatus.OK) {
             ok++;
             if (update) {
-                bad--;
+                manual--;
             }
         }
-        if (!update && ((currentNodeStatus == DocumentParsStatus.ERROR) || (currentNodeStatus == DocumentParsStatus.NOTICE))) {
-            bad++;
+        if (!update) {
+            if (currentNodeStatus == DocumentParsStatus.ERROR) {
+                bad++;
+            }
+            if (currentNodeStatus == DocumentParsStatus.NOTICE) {
+                manual++;
+            }
         }
-        ((Document) parent.getData()).setSize(ok + "/" + bad + "/" + count);
+        ((Document) parent.getData()).setSize(ok + "/" + bad + "/" + manual + "/" + count);
     }
 
     /**
@@ -518,8 +524,13 @@ public class ServiceMB implements Serializable {
         return text.split("/")[1];
     }
 
+    public String getManualParse(String text) {
+        return text.split("/")[2];
+    }
+
     public String getAll(String text) {
-        return  "(" + (Integer.parseInt(text.split("/")[0]) + Integer.parseInt(text.split("/")[1])) + " из " + text.split("/")[2] + ")";
+        return  "(" + (Integer.parseInt(text.split("/")[0]) + Integer.parseInt(text.split("/")[1]) + Integer.parseInt(text.split("/")[2])) +
+                " из " + text.split("/")[3] + ")";
     }
 
     public String getButtonName(int status) {

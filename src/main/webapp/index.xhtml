@@ -58,11 +58,15 @@
             </p:column>
             <p:column headerText="Размер" style="width: 200px; text-align: center;">
                 <p:outputPanel id="sizeColumn">
-                    <h:outputText rendered="#{uploadService.isSizeRender(document.size)}" value="#{uploadService.getOkParse(document.size)}" style="color: green;" />
-                    <h:outputText rendered="#{uploadService.isSizeRender(document.size)}" value=" / " />
-                    <h:outputText rendered="#{uploadService.isSizeRender(document.size)}" value="#{uploadService.getBadParse(document.size)}" style="color: red;" />
-                    <h:outputText rendered="#{uploadService.isSizeRender(document.size)}" value=" / " />
-                    <h:outputText rendered="#{uploadService.isSizeRender(document.size)}" value="#{uploadService.getAll(document.size)}" />
+                    <p:outputPanel rendered="#{uploadService.isSizeRender(document.size)}">
+                        <h:outputText value="#{uploadService.getOkParse(document.size)}" style="color: green;" />
+                        <h:outputText value=" / " />
+                        <h:outputText value="#{uploadService.getManualParse(document.size)}" style="color: salmon;" />
+                        <h:outputText value=" / " />
+                        <h:outputText value="#{uploadService.getBadParse(document.size)}" style="color: red;" />
+                        <h:outputText value=" / " />
+                        <h:outputText value="#{uploadService.getAll(document.size)}" />
+                    </p:outputPanel>
                     <h:outputText rendered="#{!uploadService.isSizeRender(document.size)}" value="#{document.size}" />
                 </p:outputPanel>
             </p:column>
