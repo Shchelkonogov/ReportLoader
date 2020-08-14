@@ -2,18 +2,38 @@ input[type="file"] {
     display: none;
 }
 
+.header-bar {
+    margin-bottom: 10px;
+    display: flex;
+    height: 2.7rem;
+    background: linear-gradient(60deg,#0073e6,#0059b3)!important;
+    box-shadow: 0 4px 20px 0 rgba(0,0,0,.14), 0 7px 10px -5px #0059b3;
+}
+
 .custom-file-upload {
-    border: 1px solid #ccc;
+    border: 1px solid transparent;
     display: inline-block;
     padding: 6px 12px;
     cursor: pointer;
-    background-color: #007ad9;
-    color: #fff;
+    background-color: transparent;
+    color: rgba(255,255,255,.5);
     border-radius: 3px;
 }
 
 .custom-file-upload:hover {
-    background-color: #116fbf;
+    color: rgba(255,255,255,.75);
+}
+
+.custom-button {
+    background-color: transparent !important;
+    color: rgba(255,255,255,.5) !important;
+    border: 1px solid transparent !important;
+}
+
+.custom-button:hover {
+    background-color: transparent !important;
+    color: rgba(255,255,255,.75) !important;
+    border: 1px solid transparent !important;
 }
 
 .ui-orderlist-list {
