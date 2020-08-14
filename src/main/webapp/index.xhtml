@@ -8,7 +8,7 @@
       xmlns:p="http://primefaces.org/ui"
       xmlns:pt="http://xmlns.jcp.org/jsf/passthrough">
 <h:head>
-    <title>Разборщик файлов тепловых отчетов</title>
+    <title>Загрузка ведомостей потребления</title>
     <h:outputScript name="script.js" library="js"/>
     <h:outputStylesheet name="style.css" library="css"/>
     <link rel="shortcut icon" type="image/x-icon" href="#{resource['images/logo.png']}"/>
@@ -72,7 +72,7 @@
                     <p:selectOneMenu onchange="PF('treeTable').filter()" styleClass="custom-filter">
                         <f:selectItem itemLabel="Без фильтра" itemValue="#{null}" noSelectionOption="true" />
                         <f:selectItem itemLabel="Разобранные" itemValue="2" />
-                        <f:selectItem itemLabel="Не разобранные" itemValue="4" />
+                        <f:selectItem itemLabel="Ручной разбор" itemValue="4" />
                         <f:selectItem itemLabel="Ошибки" itemValue="3" />
                     </p:selectOneMenu>
                 </f:facet>
@@ -87,13 +87,13 @@
             <p:column headerText="Управление" style="width: 100px; text-align: center;">
                 <p:outputPanel id="controlColumn">
                     <p:commandLink rendered="#{uploadService.checkControlRender(document.status, document.name)}"
-                                   value="Связать" action="#{uploadService.initAssociateDialog(document.name)}" />
+                                   value="#{uploadService.getButtonName(document.status)}" action="#{uploadService.initAssociateDialog(document.name)}" />
                 </p:outputPanel>
             </p:column>
         </p:treeTable>
     </h:form>
     <h:form id="dialog">
-        <p:dialog header="Управление" widgetVar="dlg1" modal="true" resizable="false" width="700" height="335">
+        <p:dialog header="Уточнение" widgetVar="dlg1" modal="true" resizable="false" width="700" height="335">
             <p:inputTextarea rows="3" cols="30" value="#{uploadService.message}" readonly="true" style="width: 100%;" />
             <table style="width: 100%;">
                 <tr>
@@ -126,7 +126,7 @@
         <p:dialog header="Сообщение" widgetVar="dlg2" modal="true" resizable="false" width="400" height="80">
             <p:inputTextarea rows="3" cols="30" value="#{uploadService.message}" readonly="true" style="width: 100%;" />
         </p:dialog>
-        <p:dialog header="Управление" widgetVar="dlg3" modal="true" resizable="false" width="700" height="335">
+        <p:dialog header="Уточнение" widgetVar="dlg3" modal="true" resizable="false" width="700" height="335">
             <p:inputTextarea rows="3" cols="30" value="#{uploadService.message}" readonly="true" style="width: 100%;" />
             <table style="width: 100%;">
                 <tr>

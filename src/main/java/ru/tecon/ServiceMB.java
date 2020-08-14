@@ -522,6 +522,14 @@ public class ServiceMB implements Serializable {
         return  "(" + (Integer.parseInt(text.split("/")[0]) + Integer.parseInt(text.split("/")[1])) + " из " + text.split("/")[2] + ")";
     }
 
+    public String getButtonName(int status) {
+        switch (status) {
+            case DocumentParsStatus.ERROR: return "Статус";
+            case DocumentParsStatus.NOTICE:
+                default: return "Связать";
+        }
+    }
+
     public TreeNode getRoot() {
         return root;
     }
