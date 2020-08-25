@@ -19,6 +19,7 @@ import javax.faces.context.FacesContext;
 import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
 import java.io.*;
 import java.net.URLEncoder;
 import java.nio.channels.FileChannel;
@@ -72,6 +73,8 @@ public class ServiceMB implements Serializable {
     private List<String> heatSystemList = new ArrayList<>();
     private String selectHeatSystem;
 
+    private boolean sessionActive = false;
+
     @EJB(name = "ParserBean")
     private ParserLocal ejbParser;
 
@@ -80,7 +83,16 @@ public class ServiceMB implements Serializable {
         uuid = UUID.randomUUID();
         root = new DefaultTreeNode(new Document("Files", "-"), null);
 
-        ServletContext sc = (ServletContext) FacesContext.getCurrentInstance().getExternalContext().getContext();
+        ExternalContext ec = FacesContext.getCurrentInstance().getExternalContext();
+
+        HttpServletRequest request = (HttpServletRequest) ec.getRequest();
+        String sessionID = request.getParameter("sessionID");
+
+        if ((sessionID != null) && ejbParser.checkSession(sessionID)) {
+            sessionActive = true;
+        }
+
+        ServletContext sc = (ServletContext) ec.getContext();
         rootPath = System.getProperty("user.dir") + sc.getInitParameter("upload.location") + "/" + uuid + "/";
     }
 
@@ -596,5 +608,9 @@ public class ServiceMB implements Serializable {
     public void setRootFilter(TreeNode rootFilter) {
         PrimeFaces.current().executeScript("addListener()");
         this.rootFilter = rootFilter;
+    }
+
+    public boolean isSessionActive() {
+        return sessionActive;
     }
 }

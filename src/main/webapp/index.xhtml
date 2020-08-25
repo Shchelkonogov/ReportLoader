@@ -18,7 +18,7 @@
         <p:remoteCommand name="updateTree" action="#{uploadService.updateTreeData}" update="treeTable"/> <!--oncomplete="unsetWidth()"-->
         <p:remoteCommand name="checkUpdate" action="#{uploadService.checkUpdate(true)}" />
     </h:form>
-    <h:form id="upload" enctype="multipart/form-data">
+    <h:form id="upload" rendered="#{uploadService.sessionActive}" enctype="multipart/form-data">
         <h:inputFile id="file" onchange="uploadFile()"
                      pt:multiple="true" pt:directory="true" pt:webkitdirectory="true" pt:accept="text/plain" />
     </h:form>
@@ -171,5 +171,7 @@
         </p:dialog>
     </h:form>
     <h:inputHidden id="UUID" value="#{uploadService.uuid}" />
+    <p:outputLabel rendered="#{!uploadService.sessionActive}" value="Авторизуйтесь в системе &quot;Диспетчеризация&quot;!"
+                   style="display: block; text-align: center; color: red; font-size: 25px; font-weight: bold;"/>
 </h:body>
 </html>

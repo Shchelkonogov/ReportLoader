@@ -58,4 +58,11 @@ public interface ParserLocal {
      * @return null
      */
     Future<Void> updateDataBaseCalculation(List<DataModel> histData);
+
+    /**
+     * Метод проверяет активна ли сессия
+     * @param sessionID id сессии
+     * @return true если активна
+     */
+    boolean checkSession(String sessionID);
 }

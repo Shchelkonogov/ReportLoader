@@ -1,7 +1,6 @@
 package ru.tecon.sessionBean;
 
 import ru.tecon.Utils;
-import ru.tecon.beanInterface.LoadOPCRemote;
 import ru.tecon.model.DataModel;
 import ru.tecon.model.ParserResult;
 import ru.tecon.model.ValueModel;
@@ -64,6 +63,8 @@ public class ParserSB implements ParserLocal {
 
     private static final String UPDATE_DB_CALCULATION = "update dz_last_calc_day set time_stamp = to_date(?, 'dd.mm.yyyy') " +
             "where obj_id = ? and par_id = ? and stat_aggr = ?";
+
+    private static final String CHECK_SESSION = "select td_adm.get_active_session_login(?) from dual";
 
     @Resource(name = "jdbc/DataSource")
     private DataSource ds;
@@ -231,6 +232,22 @@ public class ParserSB implements ParserLocal {
             LOG.log(Level.WARNING, "error update data base calculation", e);
         }
         return null;
+    }
+
+    @Override
+    public boolean checkSession(String sessionID) {
+        try (Connection connection = ds.getConnection();
+             PreparedStatement stm = connection.prepareStatement(CHECK_SESSION)) {
+            stm.setString(1, sessionID);
+
+            ResultSet res = stm.executeQuery();
+            if (res.next() && (res.getString(1) != null)) {
+                return true;
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.WARNING, "check session error: ", e);
+        }
+        return false;
     }
 
     @Override
