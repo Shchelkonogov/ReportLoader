@@ -49,7 +49,7 @@ public class ServiceMB implements Serializable {
             {"xml", "application/xml"}
     }).collect(Collectors.toMap(key -> key[0], value -> value[1]));
 
-    private static String rootPath;
+    private String rootPath;
 
     private ExecutorService service = Executors.newSingleThreadExecutor();
 
