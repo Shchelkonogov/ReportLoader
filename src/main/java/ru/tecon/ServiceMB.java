@@ -248,7 +248,7 @@ public class ServiceMB implements Serializable {
         for (Document doc: treeData) {
             if (doc.getName().equals(reportName)) {
                 try {
-                    ParserResult result = ejbParser.parse(data).get(5, TimeUnit.SECONDS);
+                    ParserResult result = ejbParser.parse(data).get(1, TimeUnit.MINUTES);
 
                     if (result.getStatus() == 2) {
                         doc.setStatus(DocumentParsStatus.OK);
@@ -309,9 +309,9 @@ public class ServiceMB implements Serializable {
                 try {
                     Future<ReportData> future = service.submit(() -> ParseFile.parseFile(rootPath + doc.getName()));
 
-                    ReportData data = future.get(5, TimeUnit.SECONDS);
+                    ReportData data = future.get(1, TimeUnit.MINUTES);
 
-                    ParserResult result = ejbParser.parse(data).get(5, TimeUnit.SECONDS);
+                    ParserResult result = ejbParser.parse(data).get(1, TimeUnit.MINUTES);
 
                     if (result.getStatus() == 2) {
                         doc.setStatus(DocumentParsStatus.OK);
