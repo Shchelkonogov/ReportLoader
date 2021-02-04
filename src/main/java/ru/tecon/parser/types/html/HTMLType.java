@@ -40,7 +40,7 @@ public class HTMLType {
 
     public static void main(String[] args) throws ParseException {
         getData("C:\\Programs\\800000000003594479_C2750_TP_202004_+_6я+Парковая+ул.,+д.27.html");
-}
+    }
 
     public static ReportData getData(String filePath) throws ParseException {
         List<String> lines;
@@ -202,6 +202,6 @@ public class HTMLType {
         if (value.matches("\\d{2}[-]\\d{2}[-]\\d{4}")) {
             return value.replaceAll("-", ".").trim();
         }
-        return value.replace(",", ".").trim();
+        return value.replace(",", ".").replaceAll(" ", "").trim();
     }
 }
