@@ -1,6 +1,7 @@
 package ru.tecon;
 
 import ru.tecon.beanInterface.LoadOPCRemote;
+import weblogic.jndi.WLInitialContextFactory;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -16,19 +17,28 @@ import java.util.Hashtable;
 public class Utils {
 
     /**
+     * Метод выгружает параметр удаленного сервера
+     * @return строка подключения к удаленному серверу
+     * @throws NamingException если возникла ошибка поиска переменной
+     */
+    private static String getRemoteServer() throws NamingException {
+        Context ctx = new InitialContext();
+        return (String) ctx.lookup("java:comp/env/remoteServer");
+    }
+
+    /**
      * Метод возвращает ejb bean класс для работы с базой
      * @return ejb класс
      * @throws NamingException ошибка
      */
     public static LoadOPCRemote loadRMI() throws NamingException {
         Hashtable<String, String> ht = new Hashtable<>();
-        ht.put(Context.INITIAL_CONTEXT_FACTORY, "weblogic.jndi.WLInitialContextFactory");
-        //TODO Написать нормально
-        ht.put(Context.PROVIDER_URL, "t3://172.16.4.26:7001");
+        ht.put(Context.INITIAL_CONTEXT_FACTORY, WLInitialContextFactory.class.getName());
+        ht.put(Context.PROVIDER_URL, getRemoteServer());
 
         Context ctx = new InitialContext(ht);
 
-        return  (LoadOPCRemote) ctx.lookup("ejb.LoadOPC#ru.tecon.beanInterface.LoadOPCRemote");
+        return (LoadOPCRemote) ctx.lookup("ejb.LoadOPC#" + LoadOPCRemote.class.getName());
     }
 
     /**
