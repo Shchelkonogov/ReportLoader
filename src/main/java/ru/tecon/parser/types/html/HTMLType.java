@@ -142,7 +142,14 @@ public class HTMLType {
                     if (result != null) {
                         for (ParameterData item : resultParamIntegr) {
                             if (item.getName().equals(result)) {
-                                item.getData().set(item.getData().size() - 1, updateValue(processor.getText()));
+                                // Иногда бывает, что значение не просто в теге а внутри еще <VALUE></VALUE>
+                                try {
+                                    item.getData().set(item.getData().size() - 1, updateValue(processor.getText()));
+                                } catch (XMLStreamException e) {
+                                    if (processor.getLocalName().equals("VALUE")) {
+                                        item.getData().set(item.getData().size() - 1, updateValue(processor.getText()));
+                                    }
+                                }
                                 break;
                             }
                         }
