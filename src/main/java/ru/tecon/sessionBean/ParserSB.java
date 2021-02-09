@@ -1,12 +1,14 @@
 package ru.tecon.sessionBean;
 
 import ru.tecon.Utils;
+import ru.tecon.beanInterface.LoadOPCRemote;
 import ru.tecon.model.DataModel;
 import ru.tecon.model.ParserResult;
 import ru.tecon.model.ValueModel;
 import ru.tecon.parser.model.ParameterData;
 import ru.tecon.parser.model.ReportData;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.ejb.*;
 import javax.naming.NamingException;
@@ -83,6 +85,17 @@ public class ParserSB implements ParserLocal {
     @Resource
     private EJBContext context;
 
+    private LoadOPCRemote loadOPCRemote;
+
+    @PostConstruct
+    private void init() {
+        try {
+            loadOPCRemote = Utils.loadRMI();
+        } catch (NamingException e) {
+            LOG.warning("Error load remote bean");
+        }
+    }
+
     @Override
     @Asynchronous
     public Future<ParserResult> parse(ReportData data) {
@@ -158,12 +171,7 @@ public class ParserSB implements ParserLocal {
             generateData(integrateData, stm, data.getParamIntegr(), system, objectId, -3);
             generateData(histData, stm, data.getParam(), system, objectId, 0);
 
-            // TODO Написать нормально
-            try {
-                Utils.loadRMI().putData(integrateData);
-            } catch (NamingException e) {
-                e.printStackTrace();
-            }
+            loadOPCRemote.putData(integrateData);
 
             ejbLocal.uploadSecondaryData(histData);
 
