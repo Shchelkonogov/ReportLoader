@@ -77,7 +77,8 @@ public class Type3 {
 	}
 
 	private static List<String> createList(String filePath, PDFTable pdfTable) {
-		try (PDDocument document = PDDocument.load(new FileInputStream(new File(filePath)))) {
+		try (FileInputStream stream = new FileInputStream(new File(filePath));
+			 PDDocument document = PDDocument.load(stream)) {
 			if (document.getNumberOfPages() == 1) {
 				List<TextPosition> texts = extractTextPositions(document);
 				List<Range<Integer>> lineRanges = getLineRanges(texts);
