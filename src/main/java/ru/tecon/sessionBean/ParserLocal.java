@@ -52,6 +52,15 @@ public interface ParserLocal {
     Future<Void> uploadSecondaryData(List<DataModel> histData);
 
     /**
+     * Метод который загружает данные по отчету и интеграторы в вторичную базу
+     * @param data знаечния параметров
+     * @param reportData знаечния разбора отчета
+     * @param system теплосистема
+     * @param objectID id объекта
+     */
+    void uploadSecondaryFileAndIntegrateData(List<DataModel> data, ReportData reportData, String system, int objectID);
+
+    /**
      * Асинхронный метод, который обновляет статус пересчета данных в базе
      * (внутренние особенности базы)
      * @param histData значения параметров

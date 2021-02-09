@@ -66,17 +66,22 @@ public class ParserSB implements ParserLocal {
 
     private static final String CHECK_SESSION = "select td_adm.get_active_session_login(?) from dual";
 
+    private static final String SELECT_GUID = "select get_guid_base64@nsi.mipcnet.org from dual";
+
+    private static final String INSERT_FILE_DATA = "insert into in_files values(?, ?, to_date(?, 'dd.mm.yyyy'), ?, ?, ?, ?, ?, 192, ?)";
+    private static final String INSERT_INTEGRATE_DATA = "insert into dz_hist_otch_data values(?, ?, ?, to_date(?, 'dd.mm.yyyy hh24:mi:ss'), ?, ?, ?, ?)";
+
     @Resource(name = "jdbc/DataSource")
     private DataSource ds;
 
     @Resource(name = "jdbc/DataSourceUpload")
     private DataSource dsUpload;
 
-//    @EJB(name = "LoadOPC", mappedName = "ejb/LoadOPC")
-//    private LoadOPCRemote loadOPCRemote;
-
     @EJB(name = "ParserBean")
     private ParserLocal ejbLocal;
+
+    @Resource
+    private EJBContext context;
 
     @Override
     @Asynchronous
@@ -163,6 +168,8 @@ public class ParserSB implements ParserLocal {
             ejbLocal.uploadSecondaryData(histData);
 
             ejbLocal.updateDataBaseCalculation(histData);
+
+            ejbLocal.uploadSecondaryFileAndIntegrateData(integrateData, data, system, objectId);
         } catch (SQLException e) {
             LOG.log(Level.WARNING, "identify object parameters error: ", e);
         }
@@ -286,6 +293,63 @@ public class ParserSB implements ParserLocal {
             LOG.log(Level.WARNING, "upload secondary data error: ", e);
         }
         return null;
+    }
+
+    @Override
+    @Asynchronous
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+    public void uploadSecondaryFileAndIntegrateData(List<DataModel> data, ReportData reportData, String system, int objectID) {
+        try (Connection connect = dsUpload.getConnection();
+             PreparedStatement stmAlter = connect.prepareStatement(ALTER_SQL);
+             PreparedStatement stmGetGuid = connect.prepareStatement(SELECT_GUID);
+             PreparedStatement stmFileData = connect.prepareStatement(INSERT_FILE_DATA);
+             PreparedStatement stmIntegrateData = connect.prepareStatement(INSERT_INTEGRATE_DATA)) {
+            stmAlter.executeQuery();
+
+            String guid;
+
+            ResultSet res = stmGetGuid.executeQuery();
+            if (res.next()) {
+                guid = res.getString(1);
+            } else {
+                LOG.warning("Error get guid");
+                return;
+            }
+
+            stmFileData.setInt(1, objectID);
+            stmFileData.setString(2, reportData.getAddress());
+            stmFileData.setString(3, reportData.getStartDate());
+            stmFileData.setString(4, reportData.getCounterType());
+            stmFileData.setString(5, reportData.getCounterNumber());
+            stmFileData.setString(6, reportData.getFileName());
+            stmFileData.setLong(7, reportData.getPeriod());
+            stmFileData.setString(8, system);
+            stmFileData.setString(9, guid);
+
+            stmFileData.executeQuery();
+
+            for (DataModel model: data) {
+                for (ValueModel valueModel: model.getData()) {
+                    stmIntegrateData.setInt(1, objectID);
+                    stmIntegrateData.setInt(2, model.getParamId());
+                    stmIntegrateData.setInt(3, model.getAggregateId());
+                    stmIntegrateData.setString(4, valueModel.getTime().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss")));
+                    stmIntegrateData.setString(5, valueModel.getValue());
+                    stmIntegrateData.setString(6, reportData.getAddress());
+                    stmIntegrateData.setString(7, reportData.getCounterNumber());
+                    stmIntegrateData.setString(8, guid);
+
+                    stmIntegrateData.addBatch();
+                }
+            }
+
+            int[] size = stmIntegrateData.executeBatch();
+
+            LOG.info("insert " + size.length + " integrate data for object " + objectID);
+        } catch (SQLException e) {
+            LOG.log(Level.WARNING, "upload file and integrate data error: " + reportData.getFileName(), e);
+            context.setRollbackOnly();
+        }
     }
 
     @Override

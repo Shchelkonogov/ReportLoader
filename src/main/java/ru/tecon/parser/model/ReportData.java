@@ -2,11 +2,15 @@ package ru.tecon.parser.model;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ReportData implements Serializable {
+
+	private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
 	private String fileName;
 	private String address, counterType, counterNumber, reportType;
@@ -79,6 +83,18 @@ public class ReportData implements Serializable {
 
 	public void setFileName(String fileName) {
 		this.fileName = fileName;
+	}
+
+	public String getStartDate() {
+		return startDate.format(FORMATTER);
+	}
+
+	public long getPeriod() {
+		if (startDate != null && endDate != null) {
+			return Duration.between(startDate.atStartOfDay(), endDate.atStartOfDay()).toHours();
+		} else {
+			return -1;
+		}
 	}
 
 	public boolean checkData() {
