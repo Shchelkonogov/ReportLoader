@@ -1,10 +1,14 @@
 package ru.tecon.sessionBean;
 
+import ru.tecon.model.association.AssociationCounterModel;
+import ru.tecon.model.association.AssociationModel;
+import ru.tecon.model.association.AssociationNameModel;
 import ru.tecon.model.DataModel;
 import ru.tecon.model.ParserResult;
 import ru.tecon.parser.model.ReportData;
 
 import javax.ejb.Local;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.Future;
 
@@ -74,4 +78,30 @@ public interface ParserLocal {
      * @return true если активна
      */
     boolean checkSession(String sessionID);
+
+    /**
+     * Выгрузка списка ассоциаций адресов
+     * @param name имя для поиска
+     * @return список асоциаций
+     */
+    List<AssociationModel> getAssociationNames(String name);
+
+    /**
+     * Выгрузка списка ассоциаций счетчиков
+     * @param name имя для поиска
+     * @return список асоциаций
+     */
+    List<AssociationModel> getAssociationCounters(String name);
+
+    /**
+     * Удаляем ассоциацию адресов
+     * @param rowID id строки
+     */
+    void removeAssociationName(String rowID);
+
+    /**
+     * Удаляем ассоциацию счетчиков
+     * @param rowID id строки
+     */
+    void removeAssociationCounter(String rowID);
 }

@@ -38,6 +38,10 @@
                     <p id="loaded_n_total" style="margin: 0; color: white;" />
                 </td>
                 <td width="130" align="center">
+                    <p:commandButton rendered="#{uploadService.sessionActive}" styleClass="custom-button"
+                                     value="Ассоциации" onclick="PF('associateDialog').show();"/>
+                </td>
+                <td width="130" align="center">
                     <h:form>
                         <p:commandButton styleClass="custom-button" value="Начать разбор" widgetVar="parseButton"
                                          onclick="PF('parseButton').disable();" action="#{uploadService.parse}" />
@@ -170,6 +174,63 @@
             </f:facet>
         </p:dialog>
     </h:form>
+
+    <p:dialog rendered="#{uploadService.sessionActive}" header="Ассоциации" widgetVar="associateDialog" modal="true" width="700" height="400" resizable="false">
+        <h:form id="associateForm">
+            <div style="text-align: center;" class="associate-margin">
+                <p:autoComplete maxResults="10" queryDelay="1000" scrollHeight="250" size="40"
+                                value="#{association.objectName}" completeMethod="#{association.completeText}"
+                                emptyMessage="Записей не найдено." placeholder="Введите значение для поиска адреса">
+                    <p:ajax event="itemSelect" listener="#{association.onItemSelect}" update="associateForm"/>
+                </p:autoComplete>
+            </div>
+            <div style="display: flex;">
+                <div class="associate-margin">
+                    <div style="text-align: center;">
+                        <p:outputLabel styleClass="bold" value="Адреса" />
+                    </div>
+                    <p:dataTable scrollable="true" scrollHeight="300" value="#{association.associationNames}" var="name"
+                                 styleClass="noHeader" emptyMessage="Записей не найдено.">
+                        <p:column>
+                            <h:outputText value="#{name.name}"/>
+                        </p:column>
+                        <p:column style="width: 60px;">
+                            <p:commandButton icon="pi pi-times" styleClass="rounded-button"
+                                             action="#{association.removeAssociate(name)}" update="associateForm">
+                                <p:confirm header="Подтверждение" message="Вы уверены что хотите удалить эту запись?" icon="pi pi-info-circle" />
+                            </p:commandButton>
+                        </p:column>
+                    </p:dataTable>
+                </div>
+                <div class="associate-margin">
+                    <div style="text-align: center;">
+                        <p:outputLabel styleClass="bold" value="Теплосчетчики" />
+                    </div>
+                    <p:dataTable scrollable="true" scrollHeight="300" value="#{association.associationCounters}" var="counter"
+                                 styleClass="noHeader" emptyMessage="Записей не найдено.">
+                        <p:column>
+                            <h:outputText value="#{counter.counterType}"/>
+                        </p:column>
+                        <p:column>
+                            <h:outputText value="#{counter.counterNumber}"/>
+                        </p:column>
+                        <p:column style="width: 60px;">
+                            <p:commandButton icon="pi pi-times" styleClass="rounded-button"
+                                             action="#{association.removeAssociate(counter)}" update="associateForm">
+                                <p:confirm header="Подтверждение" message="Вы уверены что хотите удалить эту запись?" icon="pi pi-info-circle" />
+                            </p:commandButton>
+                        </p:column>
+                    </p:dataTable>
+                </div>
+            </div>
+
+            <p:confirmDialog global="true" showEffect="fade" hideEffect="fade" responsive="true" width="350">
+                <p:commandButton value="Нет" type="button" styleClass="ui-confirmdialog-no"/>
+                <p:commandButton value="Да" type="button" styleClass="ui-confirmdialog-yes" />
+            </p:confirmDialog>
+        </h:form>
+    </p:dialog>
+
     <h:inputHidden id="UUID" value="#{uploadService.uuid}" />
     <p:outputLabel rendered="#{!uploadService.sessionActive}" value="Авторизуйтесь в системе &quot;Диспетчеризация&quot;!"
                    style="display: block; text-align: center; color: red; font-size: 25px; font-weight: bold;"/>

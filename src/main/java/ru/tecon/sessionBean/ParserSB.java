@@ -2,6 +2,9 @@ package ru.tecon.sessionBean;
 
 import ru.tecon.Utils;
 import ru.tecon.beanInterface.LoadOPCRemote;
+import ru.tecon.model.association.AssociationCounterModel;
+import ru.tecon.model.association.AssociationModel;
+import ru.tecon.model.association.AssociationNameModel;
 import ru.tecon.model.DataModel;
 import ru.tecon.model.ParserResult;
 import ru.tecon.model.ValueModel;
@@ -72,6 +75,13 @@ public class ParserSB implements ParserLocal {
 
     private static final String INSERT_FILE_DATA = "insert into in_files values(?, ?, to_date(?, 'dd.mm.yyyy'), ?, ?, ?, ?, ?, 192, ?)";
     private static final String INSERT_INTEGRATE_DATA = "insert into dz_hist_otch_data values(?, ?, ?, to_date(?, 'dd.mm.yyyy hh24:mi:ss'), ?, ?, ?, ?)";
+
+    private static final String SELECT_OBJECT_ID = "select obj_id from obj_object where obj_name = ?";
+    private static final String SELECT_ASSOCIATION_NAMES = "select rowid, name from dic_names where obj_id = ?";
+    private static final String SELECT_ASSOCIATION_COUNTERS = "select rowid, cnt_type, cnt_num from dic_counters where obj_id = ?";
+
+    private static final String DELETE_ASSOCIATION_ADDRESS = "delete from dic_names where rowid = ?";
+    private static final String DELETE_ASSOCIATION_COUNTER = "delete from dic_counters where rowid = ?";
 
     @Resource(name = "jdbc/DataSource")
     private DataSource ds;
@@ -263,6 +273,70 @@ public class ParserSB implements ParserLocal {
             LOG.log(Level.WARNING, "check session error: ", e);
         }
         return false;
+    }
+
+    @Override
+    public List<AssociationModel> getAssociationNames(String name) {
+        List<AssociationModel> result = new ArrayList<>();
+        try (Connection connection = ds.getConnection();
+             PreparedStatement stmObjectID = connection.prepareStatement(SELECT_OBJECT_ID);
+             PreparedStatement stm = connection.prepareStatement(SELECT_ASSOCIATION_NAMES)) {
+            stmObjectID.setString(1, name);
+            ResultSet resObjectID = stmObjectID.executeQuery();
+            if (resObjectID.next()) {
+                stm.setInt(1, resObjectID.getInt(1));
+                ResultSet res = stm.executeQuery();
+                while (res.next()) {
+                    result.add(new AssociationNameModel(res.getString(1), res.getString(2)));
+                }
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.WARNING, "load association names error:", e);
+        }
+        return result;
+    }
+
+    @Override
+    public List<AssociationModel> getAssociationCounters(String name) {
+        List<AssociationModel> result = new ArrayList<>();
+        try (Connection connection = ds.getConnection();
+             PreparedStatement stmObjectID = connection.prepareStatement(SELECT_OBJECT_ID);
+             PreparedStatement stm = connection.prepareStatement(SELECT_ASSOCIATION_COUNTERS)) {
+            stmObjectID.setString(1, name);
+            ResultSet resObjectID = stmObjectID.executeQuery();
+            if (resObjectID.next()) {
+                stm.setInt(1, resObjectID.getInt(1));
+                ResultSet res = stm.executeQuery();
+                while (res.next()) {
+                    result.add(new AssociationCounterModel(res.getString(1), res.getString(2), res.getString(3)));
+                }
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.WARNING, "load association counters error:", e);
+        }
+        return result;
+    }
+
+    @Override
+    public void removeAssociationName(String rowID) {
+        try (Connection connection = ds.getConnection();
+             PreparedStatement stm = connection.prepareStatement(DELETE_ASSOCIATION_ADDRESS)) {
+            stm.setString(1, rowID);
+            stm.executeUpdate();
+        } catch (SQLException e) {
+            LOG.log(Level.WARNING, "remove association address error:", e);
+        }
+    }
+
+    @Override
+    public void removeAssociationCounter(String rowID) {
+        try (Connection connection = ds.getConnection();
+             PreparedStatement stm = connection.prepareStatement(DELETE_ASSOCIATION_COUNTER)) {
+            stm.setString(1, rowID);
+            stm.executeUpdate();
+        } catch (SQLException e) {
+            LOG.log(Level.WARNING, "remove association counter error:", e);
+        }
     }
 
     @Override
