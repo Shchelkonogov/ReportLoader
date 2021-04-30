@@ -13,6 +13,7 @@ public class Document implements Serializable {
     private String name;
     private String size;
     private int status = DocumentParsStatus.NEW;
+    private String tooltip;
 
     public Document(String name, String size) {
         this.name = name;
@@ -43,12 +44,21 @@ public class Document implements Serializable {
         this.status = status;
     }
 
+    public String getTooltip() {
+        return tooltip;
+    }
+
+    public void setTooltip(String tooltip) {
+        this.tooltip = tooltip;
+    }
+
     @Override
     public String toString() {
         return new StringJoiner(", ", Document.class.getSimpleName() + "[", "]")
                 .add("name='" + name + "'")
                 .add("size='" + size + "'")
                 .add("status=" + status)
+                .add("tooltip='" + tooltip + "'")
                 .toString();
     }
 }

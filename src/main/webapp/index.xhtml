@@ -91,7 +91,9 @@
                     </p:selectOneMenu>
                 </f:facet>
                 <p:outputPanel id="iconColumn">
-                    <i class="#{uploadService.getStatusImage(document.status)}" style="font-size: 2em; color: #{uploadService.getColor(document.status)};"/>
+                    <i class="#{uploadService.getStatusImage(document.status)}"
+                       style="font-size: 2em; color: #{uploadService.getColor(document.status)};"
+                       title="#{document.tooltip}"/>
                 </p:outputPanel>
             </p:column>
             <p:column headerText="Просмотр" style="width: 100px; text-align: center;">

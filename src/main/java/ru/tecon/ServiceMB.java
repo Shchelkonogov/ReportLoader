@@ -251,6 +251,7 @@ public class ServiceMB implements Serializable {
                     ParserResult result = ejbParser.parse(data).get(1, TimeUnit.MINUTES);
 
                     if (result.getStatus() == 2) {
+                        createTooltip(doc, result);
                         doc.setStatus(DocumentParsStatus.OK);
                         parserResults.remove(reportName);
                     } else {
@@ -314,6 +315,7 @@ public class ServiceMB implements Serializable {
                     ParserResult result = ejbParser.parse(data).get(1, TimeUnit.MINUTES);
 
                     if (result.getStatus() == 2) {
+                        createTooltip(doc, result);
                         doc.setStatus(DocumentParsStatus.OK);
                     } else {
                         result.setReportData(data);
@@ -350,6 +352,19 @@ public class ServiceMB implements Serializable {
             log.info("parse files is finish");
             parseStatus = false;
         }).start();
+    }
+
+    /**
+     * Метод формирует tooltip для разобранного элемента
+     * @param doc документ
+     * @param result результат разбора
+     */
+    private void createTooltip(Document doc, ParserResult result) {
+        String addTooltip = "";
+        if ((result.getSystem() != null) && !result.getSystem().equals("")) {
+            addTooltip = " (" + result.getSystem() + ")";
+        }
+        doc.setTooltip(ejbParser.getObjectName(Integer.valueOf(result.getObjectId())) + addTooltip);
     }
 
     /**

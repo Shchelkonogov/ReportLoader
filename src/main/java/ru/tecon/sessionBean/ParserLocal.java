@@ -1,14 +1,11 @@
 package ru.tecon.sessionBean;
 
-import ru.tecon.model.association.AssociationCounterModel;
-import ru.tecon.model.association.AssociationModel;
-import ru.tecon.model.association.AssociationNameModel;
 import ru.tecon.model.DataModel;
 import ru.tecon.model.ParserResult;
+import ru.tecon.model.association.AssociationModel;
 import ru.tecon.parser.model.ReportData;
 
 import javax.ejb.Local;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.Future;
 
@@ -104,4 +101,11 @@ public interface ParserLocal {
      * @param rowID id строки
      */
     void removeAssociationCounter(String rowID);
+
+    /**
+     * Выгружаем имя объекта по его ID
+     * @param objectID ID объекта
+     * @return полученное имя
+     */
+    String getObjectName(int objectID);
 }

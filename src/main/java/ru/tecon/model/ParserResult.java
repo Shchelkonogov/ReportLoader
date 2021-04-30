@@ -15,6 +15,7 @@ public class ParserResult implements Serializable {
     private String name;
     private String objectId;
     private String message;
+    private String system;
     private ReportData reportData = new ReportData();
 
     public ParserResult(int status, String name, String message, String objectId) {
@@ -48,6 +49,14 @@ public class ParserResult implements Serializable {
         return objectId;
     }
 
+    public void setSystem(String system) {
+        this.system = system;
+    }
+
+    public String getSystem() {
+        return system;
+    }
+
     @Override
     public String toString() {
         return new StringJoiner(", ", ParserResult.class.getSimpleName() + "[", "]")
@@ -55,6 +64,7 @@ public class ParserResult implements Serializable {
                 .add("name='" + name + "'")
                 .add("objectId='" + objectId + "'")
                 .add("message='" + message + "'")
+                .add("system='" + system + "'")
                 .add("reportData=" + reportData)
                 .toString();
     }

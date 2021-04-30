@@ -83,6 +83,8 @@ public class ParserSB implements ParserLocal {
     private static final String DELETE_ASSOCIATION_ADDRESS = "delete from dic_names where rowid = ?";
     private static final String DELETE_ASSOCIATION_COUNTER = "delete from dic_counters where rowid = ?";
 
+    private static final String SELECT_OBJECT_NAME = "select obj_name from obj_object where obj_id = ?";
+
     @Resource(name = "jdbc/DataSource")
     private DataSource ds;
 
@@ -165,7 +167,10 @@ public class ParserSB implements ParserLocal {
                 uploadData(data, stm.getString(16), stm.getInt(14));
             }
 
-            return new AsyncResult<>(new ParserResult(stm.getInt(13), data.getFileName(), stm.getString(17), stm.getString(14)));
+            ParserResult result = new ParserResult(stm.getInt(13), data.getFileName(), stm.getString(17), stm.getString(14));
+            result.setSystem(stm.getString(16));
+
+            return new AsyncResult<>(result);
         } catch (SQLException e) {
             LOG.log(Level.WARNING, "fix_obj_heat_sys error: for file " + data.getFileName(), e);
         }
@@ -337,6 +342,21 @@ public class ParserSB implements ParserLocal {
         } catch (SQLException e) {
             LOG.log(Level.WARNING, "remove association counter error:", e);
         }
+    }
+
+    @Override
+    public String getObjectName(int objectID) {
+        try (Connection connection = ds.getConnection();
+             PreparedStatement stm = connection.prepareStatement(SELECT_OBJECT_NAME)) {
+            stm.setInt(1, objectID);
+            ResultSet res = stm.executeQuery();
+            if (res.next()) {
+                return res.getString(1);
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.WARNING, "load object name error:", e);
+        }
+        return "";
     }
 
     @Override
