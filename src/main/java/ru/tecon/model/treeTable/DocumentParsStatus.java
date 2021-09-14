@@ -37,4 +37,9 @@ public final class DocumentParsStatus {
      * Статус узла, не все объекты разобраны
      */
     public static final int NOTICE_NODE = 5;
+
+    /**
+     * Объект разобран, не все параметры слинкованы
+     */
+    public static final int NOTICE_LINK = 6;
 }

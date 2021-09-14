@@ -89,3 +89,8 @@ body .ui-treetable .ui-treetable-data>tr>td {
     font-size: 1.25rem;
     font-weight: bold;
 }
+
+.ok-i {
+    content: url("#{resource['images/ok-i.png']}");
+    height: 26.4px;
+}

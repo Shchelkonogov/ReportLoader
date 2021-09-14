@@ -183,7 +183,7 @@ public class ServiceMB implements Serializable {
      * @return true - если кнопку отображать и наоборот
      */
     public boolean checkControlRender(int status, String name) {
-        return ((checkRender(name)) && ((status == DocumentParsStatus.ERROR) || (status == DocumentParsStatus.NOTICE)));
+        return ((checkRender(name)) && ((status == DocumentParsStatus.ERROR) || (status == DocumentParsStatus.NOTICE) || (status == DocumentParsStatus.NOTICE_LINK)));
     }
 
     /**
@@ -255,9 +255,15 @@ public class ServiceMB implements Serializable {
                         doc.setStatus(DocumentParsStatus.OK);
                         parserResults.remove(reportName);
                     } else {
-                        result.setReportData(data);
-                        parserResults.put(doc.getName(), result);
-                        doc.setStatus(DocumentParsStatus.NOTICE);
+                        if (result.getStatus() == 4) {
+                            createTooltip(doc, result);
+                            parserResults.put(doc.getName(), result);
+                            doc.setStatus(DocumentParsStatus.NOTICE_LINK);
+                        } else {
+                            result.setReportData(data);
+                            parserResults.put(doc.getName(), result);
+                            doc.setStatus(DocumentParsStatus.NOTICE);
+                        }
                     }
                 } catch (InterruptedException ignore) {
                 } catch (ExecutionException e) {
@@ -318,9 +324,15 @@ public class ServiceMB implements Serializable {
                         createTooltip(doc, result);
                         doc.setStatus(DocumentParsStatus.OK);
                     } else {
-                        result.setReportData(data);
-                        parserResults.put(doc.getName(), result);
-                        doc.setStatus(DocumentParsStatus.NOTICE);
+                        if (result.getStatus() == 4) {
+                            createTooltip(doc, result);
+                            parserResults.put(doc.getName(), result);
+                            doc.setStatus(DocumentParsStatus.NOTICE_LINK);
+                        } else {
+                            result.setReportData(data);
+                            parserResults.put(doc.getName(), result);
+                            doc.setStatus(DocumentParsStatus.NOTICE);
+                        }
                     }
                 } catch (InterruptedException ignore) {
                 } catch (ExecutionException e) {
@@ -380,7 +392,7 @@ public class ServiceMB implements Serializable {
                 .collect(Collectors.toSet());
 
         if (!status.contains(DocumentParsStatus.WORKING) && !status.contains(DocumentParsStatus.NEW)) {
-            if ((status.size() == 1) && (!status.contains(DocumentParsStatus.NOTICE))) {
+            if ((status.size() == 1) && !status.contains(DocumentParsStatus.NOTICE) && !status.contains(DocumentParsStatus.NOTICE_LINK)) {
                 ((Document) parent.getData()).setStatus(status.iterator().next());
             } else {
                 ((Document) parent.getData()).setStatus(DocumentParsStatus.NOTICE_NODE);
@@ -392,7 +404,7 @@ public class ServiceMB implements Serializable {
         int bad = Integer.parseInt(((Document) parent.getData()).getSize().split("/")[1]);
         int manual = Integer.parseInt(((Document) parent.getData()).getSize().split("/")[2]);
 
-        if (currentNodeStatus == DocumentParsStatus.OK) {
+        if ((currentNodeStatus == DocumentParsStatus.OK) || (currentNodeStatus == DocumentParsStatus.NOTICE_LINK)) {
             ok++;
             if (update) {
                 manual--;
@@ -446,6 +458,9 @@ public class ServiceMB implements Serializable {
             case DocumentParsStatus.NOTICE:
             case DocumentParsStatus.NOTICE_NODE: {
                 return "pi pi-info";
+            }
+            case DocumentParsStatus.NOTICE_LINK: {
+                return "ok-i";
             }
             default: return "";
         }
@@ -562,7 +577,8 @@ public class ServiceMB implements Serializable {
 
     public String getButtonName(int status) {
         switch (status) {
-            case DocumentParsStatus.ERROR: return "Статус";
+            case DocumentParsStatus.ERROR:
+            case DocumentParsStatus.NOTICE_LINK: return "Статус";
             case DocumentParsStatus.NOTICE:
                 default: return "Связать";
         }

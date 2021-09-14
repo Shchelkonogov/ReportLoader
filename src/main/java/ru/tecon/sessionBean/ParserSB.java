@@ -20,9 +20,7 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -84,6 +82,10 @@ public class ParserSB implements ParserLocal {
     private static final String DELETE_ASSOCIATION_COUNTER = "delete from dic_counters where rowid = ?";
 
     private static final String SELECT_OBJECT_NAME = "select obj_name from obj_object where obj_id = ?";
+
+    private static final String SELECT_CHECK_PARAM_LINK = "select 1 from dz_obj_param0_1 where obj_id = ? and id = ? and stat_agr_id = ?";
+
+    private static final String SELECT_PAR_MEMO = "select par_memo from dz_param where id = ?";
 
     @Resource(name = "jdbc/DataSource")
     private DataSource ds;
@@ -164,7 +166,11 @@ public class ParserSB implements ParserLocal {
             stm.executeUpdate();
 
             if (stm.getInt(13) == 2) {
-                uploadData(data, stm.getString(16), stm.getInt(14));
+                ParserResult result = uploadData(data, stm.getString(16), stm.getInt(14));
+                if (result != null) {
+                    result.setSystem(stm.getString(16));
+                    return new AsyncResult<>(result);
+                }
             }
 
             ParserResult result = new ParserResult(stm.getInt(13), data.getFileName(), stm.getString(17), stm.getString(14));
@@ -177,7 +183,7 @@ public class ParserSB implements ParserLocal {
         return null;
     }
 
-    private void uploadData(ReportData data, String system, int objectId) {
+    private ParserResult uploadData(ReportData data, String system, int objectId) {
         try (Connection connect = ds.getConnection();
              PreparedStatement stm = connect.prepareStatement(IDENTIFY_OBJECT_PARAMETERS)) {
             List<DataModel> integrateData = new ArrayList<>();
@@ -186,6 +192,9 @@ public class ParserSB implements ParserLocal {
             generateData(integrateData, stm, data.getParamIntegr(), system, objectId, -3);
             generateData(histData, stm, data.getParam(), system, objectId, 0);
 
+            Set<String> noLinkParams = checkParamLink(connect, integrateData);
+            noLinkParams.addAll(checkParamLink(connect, histData));
+
             loadOPCRemote.putData(integrateData);
 
             ejbLocal.uploadSecondaryData(histData);
@@ -193,10 +202,59 @@ public class ParserSB implements ParserLocal {
             ejbLocal.updateDataBaseCalculation(histData);
 
             ejbLocal.uploadSecondaryFileAndIntegrateData(integrateData, data, system, objectId);
+
+            if (!noLinkParams.isEmpty()) {
+                return new ParserResult(4, data.getFileName(), "Не слинкованные параметры: " + String.join(", ", noLinkParams), String.valueOf(objectId));
+            }
         } catch (SQLException e) {
             LOG.log(Level.WARNING, "identify object parameters error: ", e);
         }
+
+        return null;
     }
+
+    /**
+     * Проверяем линковку параметров
+     * @param connect подключение к базе
+     * @param dataModels данные параметров
+     * @return имена не слинкованных параметров
+     */
+    private Set<String> checkParamLink(Connection connect, List<DataModel> dataModels) {
+        Set<String> noLinkParams = new HashSet<>();
+        try (PreparedStatement stm = connect.prepareStatement(SELECT_CHECK_PARAM_LINK);
+             PreparedStatement stmParMemo = connect.prepareStatement(SELECT_PAR_MEMO)) {
+            dataModels.removeIf(model -> {
+                try {
+                    stm.setInt(1, model.getObjectId());
+                    stm.setInt(2, model.getParamId());
+                    stm.setInt(3, model.getAggregateId());
+
+                    ResultSet res = stm.executeQuery();
+
+                    if (res.next()) {
+                        return false;
+                    }
+
+                    stmParMemo.setInt(1, model.getParamId());
+
+                    res = stmParMemo.executeQuery();
+
+                    if (res.next()) {
+                        noLinkParams.add(res.getString(1));
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    LOG.log(Level.WARNING, "check param link error: ", e);
+                }
+                return true;
+            });
+        } catch (SQLException e) {
+            LOG.log(Level.WARNING, "check param link error: ", e);
+        }
+
+        return noLinkParams;
+    }
+
 
     private void generateData(List<DataModel> generateData, PreparedStatement stm, List<ParameterData> data, String system,
                               int objectId, int changeDate) throws SQLException {
