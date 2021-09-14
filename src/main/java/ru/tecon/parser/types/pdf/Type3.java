@@ -36,6 +36,10 @@ public class Type3 {
 			".*за.*", ".*с.*по.*", "Потребитель:.*ЦТП №:.*", "Адрес потребителя:.*Телефон:.*",
 			"Ответственное лицо:.*", "Прибор:.*Сер.номер:.*", "Модель:.*Версия ПО:.*");
 
+	private static final List<String> testType2 = Arrays.asList("Посуточная ведомость показаний прибора учета",
+			".*за.*", ".*с.*по.*", "Потребитель:.*ЦТП №:.*", "Адрес потребителя:.*Телефон:.*",
+			"Прибор:.*Сер.номер:.*", "Модель:.*Версия ПО:.*");
+
 	private static List<String> removeData = new ArrayList<>(Arrays.asList("U", "D", "G", "g,G", "U,g,G",
 			"D,G", "D,g,G", "g", "U,g", "U,D", "E", "U,G", "U,D,g,G", "D,g", "U,D,g", "U,E", "D,E",
 			"U,D,E", "U,g,E", "g,E", "g,G,E", "U,D,G", "D,g,E"));
@@ -135,7 +139,16 @@ public class Type3 {
 			}
 		}
 
-		if (test || test1) {
+		boolean test2 = true;
+
+		for (String item: testType2) {
+			if (subLines.stream().noneMatch(obj -> obj.trim().matches(item))) {
+				test2 = false;
+				break;
+			}
+		}
+
+		if (test || test1 || test2) {
 			logger.info("checkType is successful");
 			return true;
 		}
@@ -165,7 +178,10 @@ public class Type3 {
 				&& subLines.get(5).matches("Ответственное лицо:.*"))
 				|| (subLines.get(3).matches("Потребитель:.*")
 						&& subLines.get(5).matches("Адрес потребителя:.*")
-						&& subLines.get(6).matches("Ответственное лицо:.*"))) {
+						&& subLines.get(6).matches("Ответственное лицо:.*"))
+				|| (subLines.get(2).matches("Потребитель:.*")
+						&& subLines.get(3).matches("Адрес потребителя:.*")
+						&& subLines.get(4).matches("Прибор:.*"))) {
 			address = subLines.stream().filter(obj -> obj.matches("Адрес потребителя:.*")).findFirst().orElse("");
 			address = address.substring(address.indexOf("Адрес потребителя:") + "Адрес потребителя:".length()
 					, address.indexOf("Телефон:")).trim();
@@ -224,7 +240,7 @@ public class Type3 {
 		}
 
 		//Определяем тип отчета.
-		String reportName = subLines.stream().filter(obj -> obj.matches("(по системе.*за.*)|(.*за.*г[.])")).findFirst().orElse("").trim();
+		String reportName = subLines.stream().filter(obj -> obj.matches("(по системе.*за.*)|(.*за.*г[.])|(.*за.*г[.].*)")).findFirst().orElse("").trim();
 		if (reportName.equals("")) {
 			throw new ParseException("can't read report name");
 		}
@@ -238,11 +254,11 @@ public class Type3 {
 				counterNumber.indexOf("Расход")).trim();
 
 		//Определяем начальную и конечную дату, а также период.
-		String textPart = subLines.stream().filter(obj -> obj.trim().matches("(\\(c.*по.*\\))|(\\(с.*по.*\\))")).findFirst().orElse("");
+		String textPart = subLines.stream().filter(obj -> obj.trim().matches("(\\(c.*по.*\\))|(\\(с.*по.*\\))|(.*\\(c.*по.*\\))")).findFirst().orElse("");
 		if (textPart.equals("")) {
 			throw new ParseException("can't read date");
 		}
-		textPart = textPart.replace('с', 'c');
+		textPart = textPart.replace('с', 'c').substring(textPart.indexOf("(c"));
 		LocalDate date1 = null;
 		LocalDate date2 = null;
 
@@ -638,6 +654,8 @@ public class Type3 {
 		private boolean startLoad = false;
 		private boolean loadAddress = false;
 
+		private float rightTrim = 0;
+
 		private List<Range<Integer>> columnRanges = new ArrayList<>();
 
 		private List<TextPosition> headList = new ArrayList<>();
@@ -737,6 +755,9 @@ public class Type3 {
 				try {
 					format.parse(retVal.toString().substring(0, 10));
 					startLoad = false;
+					if (rightTrim != 0) {
+						rowContent.removeIf(textPosition -> textPosition.getX() >= rightTrim);
+					}
 					dataListIntegr.addAll(rowContent);
 				} catch (Exception ignore) {
 				}
@@ -745,6 +766,12 @@ public class Type3 {
 						|| retVal.toString().trim().matches("Наиртаосгтоамю.*")
 						|| startLoad) {
 					startLoad = true;
+					if (rightTrim == 0 && retVal.indexOf("Отчетный период:") != -1) {
+						rightTrim = rowContent.get(retVal.indexOf("Отчетный период:")).getX();
+					}
+					if (rightTrim != 0) {
+						rowContent.removeIf(textPosition -> textPosition.getX() >= rightTrim);
+					}
 					headListIntegr.addAll(rowContent);
 				}
 
