@@ -9,10 +9,17 @@ let loadedFilesCount;
 
 // Функция загрузки файлов на сервер
 function uploadFile() {
-    _("status").innerHTML = "Подготовка";
-    _("statusIcon").setAttribute('class', 'pi pi-spin pi-spinner');
     let filesLength = _("upload:file").files.length;
     filesCount = filesLength;
+
+    if (filesCount > 1000) {
+        alert("Вы можете загрузить максимум 1000 файлов");
+        return;
+    }
+
+    _("status").innerHTML = "Подготовка";
+    _("statusIcon").setAttribute('class', 'pi pi-spin pi-spinner');
+
     loadedFilesCount = 0;
     let formData = new FormData();
     for(let i = 0; i < filesLength; i++){
