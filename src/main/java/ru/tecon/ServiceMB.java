@@ -207,7 +207,7 @@ public class ServiceMB implements Serializable {
                 }
                 case 1: {
                     dialogName = "dlg3";
-                    ejbParser.getHeatSystemNames(parserResults.get(reportName).getObjectId());
+                    heatSystemList = ejbParser.getHeatSystemNames(parserResults.get(reportName).getObjectId());
                     break;
                 }
             }
