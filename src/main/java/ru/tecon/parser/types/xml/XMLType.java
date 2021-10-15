@@ -8,6 +8,7 @@ import ru.tecon.parser.types.StaxStreamProcessor;
 
 import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
@@ -53,8 +54,8 @@ public class XMLType {
         List<ParameterData> resultParam = new ArrayList<>();
         List<ParameterData> resultParamIntegr = new ArrayList<>();
 
-        try (StaxStreamProcessor processor = new StaxStreamProcessor(
-                Files.newInputStream(Paths.get(filePath)))) {
+        try (InputStream in = Files.newInputStream(Paths.get(filePath));
+             StaxStreamProcessor processor = new StaxStreamProcessor(in)) {
             try {
                 if (processor.getElement("DTstart")) {
                     date2 = LocalDate.parse(processor.getText(), formatter);

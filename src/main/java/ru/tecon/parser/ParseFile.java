@@ -16,6 +16,7 @@ import ru.tecon.parser.types.pdf.*;
 import ru.tecon.parser.types.xml.XMLType;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -68,7 +69,8 @@ public class ParseFile {
 	private static String getText(Path path) throws ParseException {
 		AutoDetectParser parser = new AutoDetectParser(tikaConfig);
 		ContentHandler handler = new BodyContentHandler(-1);
-		try (TikaInputStream stream = TikaInputStream.get(Files.newInputStream(path))) {
+		try (InputStream in = Files.newInputStream(path);
+			 TikaInputStream stream = TikaInputStream.get(in)) {
 			parser.parse(stream, handler, new Metadata(), new ParseContext());
 			return handler.toString();
 		} catch (IOException | SAXException | TikaException e) {

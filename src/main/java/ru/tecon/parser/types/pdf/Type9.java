@@ -12,6 +12,7 @@ import ru.tecon.parser.types.ParserUtils;
 import java.io.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -78,8 +79,8 @@ public class Type9 {
 	}
 
 	private static List<String> createList(String filePath, PDFTable pdfTable) {
-		try (FileInputStream stream = new FileInputStream(new File(filePath));
-			 PDDocument document = PDDocument.load(stream)) {
+		try (InputStream in = Files.newInputStream(Paths.get(filePath));
+			 PDDocument document = PDDocument.load(in)) {
 			if (document.getNumberOfPages() == 1) {
 				List<TextPosition> texts = extractTextPositions(document);
 				List<Range<Integer>> lineRanges = getLineRanges(texts);
