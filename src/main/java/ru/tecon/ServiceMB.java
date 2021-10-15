@@ -121,12 +121,14 @@ public class ServiceMB implements Serializable {
                 }
 
                 for (Path path: paths) {
-                    DefaultTreeNode parent = foldersMap.get(Utils.getExtension(path));
-                    Document doc = new Document(path.getFileName().toString(),
-                            Utils.humanReadableByteCountBin(FileChannel.open(path).size()));
+                    try (FileChannel fileChannel = FileChannel.open(path)) {
+                        DefaultTreeNode parent = foldersMap.get(Utils.getExtension(path));
+                        Document doc = new Document(path.getFileName().toString(),
+                                Utils.humanReadableByteCountBin(fileChannel.size()));
 
-                    treeData.add(doc);
-                    new DefaultTreeNode(doc, parent);
+                        treeData.add(doc);
+                        new DefaultTreeNode(doc, parent);
+                    }
                 }
 
                 for (Map.Entry<String, DefaultTreeNode> entry: foldersMap.entrySet()) {
