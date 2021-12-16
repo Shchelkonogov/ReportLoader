@@ -22,7 +22,12 @@
     <env-entry>
         <env-entry-name>remoteServer</env-entry-name>
         <env-entry-type>java.lang.String</env-entry-type>
-        <env-entry-value>t3://172.16.4.26:7001</env-entry-value>
+        <env-entry-value>t3://172.16.4.26:7003</env-entry-value>
+    </env-entry>
+    <env-entry>
+        <env-entry-name>upload.location</env-entry-name>
+        <env-entry-type>java.lang.String</env-entry-type>
+        <env-entry-value>/path/to/uploads</env-entry-value>
     </env-entry>
 
     <context-param>
