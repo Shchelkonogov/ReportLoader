@@ -5,6 +5,7 @@ import ru.tecon.parser.model.ParameterData;
 import ru.tecon.parser.model.ReportData;
 import ru.tecon.parser.types.ParserUtils;
 import ru.tecon.parser.types.StaxStreamProcessor;
+import ru.tecon.parser.types.xml.XMLType;
 
 import javax.xml.stream.XMLStreamException;
 import java.io.*;
@@ -54,6 +55,10 @@ public class HTMLType {
             }
         } catch (IOException e) {
             throw new ParseException("can't read file");
+        }
+
+        if (lines.get(0).contains("xml")) {
+            return XMLType.getData(filePath);
         }
 
         lines.removeIf(s -> s.startsWith("function"));
