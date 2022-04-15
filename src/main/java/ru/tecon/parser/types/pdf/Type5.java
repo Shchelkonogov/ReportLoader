@@ -308,25 +308,7 @@ public class Type5 {
 		}
 
 		//Убираем строки где только дата, а остальные значения пустые
-		List<Integer> removeList = new ArrayList<>();
-		boolean flag;
-		for (int i = 0; i < resultParam.get(0).getData().size(); i++) {
-			flag = true;
-			for (int j = 1; j < resultParam.size(); j++) {
-				if (!resultParam.get(j).getData().get(i).equals("")) {
-					flag = false;
-					break;
-				}
-			}
-			if (flag) {
-				removeList.add(i);
-			}
-		}
-		for (int i = removeList.size() - 1; i >= 0; i--) {
-			for (ParameterData item: resultParam) {
-				item.getData().remove(removeList.get(i).intValue());
-			}
-		}
+		ParserUtils.removeNullRows(resultParam);
 
 		//Проверяем на наличие не числовых значений
 		for (int i = 1; i < resultParam.size(); i++) {
@@ -437,6 +419,9 @@ public class Type5 {
 		reportData.setStartDate(date2);
 		reportData.setEndDate(date1);
 		reportData.setReportType(reportName);
+
+		ParserUtils.removeNullParameters(resultParam);
+		ParserUtils.removeNullParameters(resultParamIntegr);
 
 		if (!reportData.checkData()) {
 			reportData.print();

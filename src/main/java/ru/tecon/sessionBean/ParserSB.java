@@ -271,13 +271,15 @@ public class ParserSB implements ParserLocal {
                 for (int j = 0; j < parameterData.getData().size(); j++) {
                     String item = parameterData.getData().get(j);
 
-                    try {
-                        LocalDateTime dateTime = LocalDateTime.parse(data.get(0).getData().get(j) + " 00:00:00",
-                                DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss")).plusHours(changeDate);
+                    if (Objects.nonNull(item) && !item.equals("")) {
+                        try {
+                            LocalDateTime dateTime = LocalDateTime.parse(data.get(0).getData().get(j) + " 00:00:00",
+                                    DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss")).plusHours(changeDate);
 
-                        dataModel.addData(new ValueModel(item, dateTime));
-                    } catch (DateTimeParseException ignore) {
-                        continue outer;
+                            dataModel.addData(new ValueModel(item, dateTime));
+                        } catch (DateTimeParseException ignore) {
+                            continue outer;
+                        }
                     }
                 }
 

@@ -161,8 +161,8 @@ public class XMLType {
             throw new ParseException("parse error");
         }
 
-        removeNullParameters(resultParam);
-        removeNullParameters(resultParamIntegr);
+        ParserUtils.removeNullParameters(resultParam);
+        ParserUtils.removeNullParameters(resultParamIntegr);
 
         ParserUtils.updateParamNames(resultParam, dbParamName, paramName);
         ParserUtils.updateParamNames(resultParamIntegr, dbParamNameIntegr, paramName);
@@ -197,17 +197,6 @@ public class XMLType {
         ParserUtils.updateValue("p3", reportData.getParam(), 0.101325f);
 
         return reportData;
-    }
-
-    private static void removeNullParameters(List<ParameterData> resultParam) {
-        resultParam.removeIf(parameterData -> {
-            for (String value: parameterData.getData()) {
-                if (!value.equals("")) {
-                    return false;
-                }
-            }
-            return true;
-        });
     }
 
     private static void changePositionDateDataRow(List<ParameterData> resultParam) {

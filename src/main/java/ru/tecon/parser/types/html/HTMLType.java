@@ -185,6 +185,9 @@ public class HTMLType {
         reportData.setEndDate(date1);
         reportData.setReportType(reportName);
 
+        ParserUtils.removeNullParameters(resultParam);
+        ParserUtils.removeNullParameters(resultParamIntegr);
+
         if (!reportData.checkData()) {
             reportData.print();
 

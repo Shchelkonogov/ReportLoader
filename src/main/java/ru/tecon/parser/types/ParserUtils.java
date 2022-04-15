@@ -50,6 +50,21 @@ public class ParserUtils {
         }
     }
 
+    /**
+     * Убираем параметры, где все значения пустые
+     * @param resultParam список данных для удаления параметров со всеми пустыми значениями
+     */
+    public static void removeNullParameters(List<ParameterData> resultParam) {
+        resultParam.removeIf(parameterData -> {
+            for (String value: parameterData.getData()) {
+                if (!value.equals("")) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+
     public static void updateParamNames(List<ParameterData> resultParam, List<String> newNames, List<String> paramName) throws ParseException {
         List<String> unknownParamNames = new ArrayList<>();
         for (ParameterData data: resultParam) {
