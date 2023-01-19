@@ -2,6 +2,8 @@ package ru.tecon.parser.types.pdf;
 
 import com.google.common.collect.Range;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageTree;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
 import ru.tecon.parser.ParseException;
@@ -84,27 +86,25 @@ public class Type3 {
 	private static List<String> createList(String filePath, PDFTable pdfTable) {
 		try (InputStream in = Files.newInputStream(Paths.get(filePath));
 			 PDDocument document = PDDocument.load(in)) {
-			if (document.getNumberOfPages() == 1) {
-				List<TextPosition> texts = extractTextPositions(document);
-				List<Range<Integer>> lineRanges = getLineRanges(texts);
-				StringBuilder table = pdfTable.buildTable(texts, lineRanges);
+			List<TextPosition> texts = extractTextPositions(document);
+			List<Range<Integer>> lineRanges = getLineRanges(texts);
+			StringBuilder table = pdfTable.buildTable(texts, lineRanges);
 
-				List<String> lines = new ArrayList<>(Arrays.asList(table.toString().split("\n")));
+			List<String> lines = new ArrayList<>(Arrays.asList(table.toString().split("\n")));
 
-				if (lines.stream().anyMatch(obj -> obj.matches("Дата.*"))) {
+			if (lines.stream().anyMatch(obj -> obj.matches("Дата.*"))) {
 
-					//Вытаскиваем шапку
-					List<String> subLines = new ArrayList<>();
-					for (String item: lines) {
-						if (!item.matches("Дата.*")) {
-							subLines.add(item);
-						} else {
-							break;
-						}
+				//Вытаскиваем шапку
+				List<String> subLines = new ArrayList<>();
+				for (String item: lines) {
+					if (!item.matches("Дата.*")) {
+						subLines.add(item);
+					} else {
+						break;
 					}
-
-					return subLines;
 				}
+
+				return subLines;
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -793,7 +793,19 @@ public class Type3 {
             this.doc = doc;
         }
 
-        protected void writeString(String string, List<TextPosition> textPositions) {
+		@Override
+		protected void processPages(PDPageTree pages) throws IOException {
+        	// Убираю из разбора все страницы кроме первой
+        	Iterator<PDPage> pageIterator = pages.iterator();
+			pageIterator.next();
+			while (pageIterator.hasNext()) {
+				pages.remove(pageIterator.next());
+			}
+			super.processPages(pages);
+		}
+
+		@Override
+		protected void writeString(String string, List<TextPosition> textPositions) {
         	this.textPositions.addAll(textPositions);
         }
 
