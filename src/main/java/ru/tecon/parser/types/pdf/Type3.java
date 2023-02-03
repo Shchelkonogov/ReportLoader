@@ -21,6 +21,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class Type3 {
@@ -79,6 +81,15 @@ public class Type3 {
 			"p2", "Time", "нет", "Дата", "нет", "нет", "G1", "Q", "G1", "G2",
 			"нет", "нет", "Time", "нет", "G1", "G2", "Time", "G1", "G1", "G1", "V1",
 			"V2", "V1", "V2", "V1", "V2");
+
+	private static final Map<String, AbstractMap.SimpleEntry<String, String>> JOIN_PARAM_NAMES;
+
+	static {
+		JOIN_PARAM_NAMES = new HashMap<>();
+
+		JOIN_PARAM_NAMES.put("tпод-tобр", new AbstractMap.SimpleEntry<>("нет", "нет"));
+		JOIN_PARAM_NAMES.put("Tотк", new AbstractMap.SimpleEntry<>("нет", "нет"));
+	}
 
 	private Type3() {
 	}
@@ -328,14 +339,29 @@ public class Type3 {
 			}
 
 			boolean addStatus = false;
-			for (int i = columnParams.size() - 1; i >= 0; i--) {
-				String item = columnParams.get(i).trim();
-				if (paramName.contains(item)) {
-					resultParam.add(new ParameterData(dbParamName.get(paramName.indexOf(item))));
-					addStatus = true;
-					break;
+
+			// Попытка найти объединенные имена
+			String joinName = String.join("", columnParams);
+			Pattern pattern = Pattern.compile("(?<name>.*)(\\[.*])");
+			Matcher matcher = pattern.matcher(joinName);
+			if (matcher.find()) {
+				joinName = matcher.group("name").trim();
+			}
+
+			if (JOIN_PARAM_NAMES.containsKey(joinName)) {
+				resultParam.add(new ParameterData(JOIN_PARAM_NAMES.get(joinName).getKey()));
+				addStatus = true;
+			} else {
+				for (int i = columnParams.size() - 1; i >= 0; i--) {
+					String item = columnParams.get(i).trim();
+					if (paramName.contains(item)) {
+						resultParam.add(new ParameterData(dbParamName.get(paramName.indexOf(item))));
+						addStatus = true;
+						break;
+					}
 				}
 			}
+
 			if (!addStatus) {
 				throw new ParseException("Не знаю параметра: " + columnParams.stream().map(e -> e = "'" + e + "'").collect(Collectors.toList()));
 			}
