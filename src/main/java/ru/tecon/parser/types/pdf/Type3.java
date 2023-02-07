@@ -60,7 +60,7 @@ public class Type3 {
 			"Pобр", "Tнар", "Классиф", "Нарастающим", "tпод-tобр*", "Tнераб*", "M1", "Q,",
 			"Mпод", "Mобр", "Подпитка", "tпод-tобр", "Tр", "То", "Мпод.[т]", "Мобр.[т]",
 			"Тнар", "M", "Массовый расход, [т]", "Массовый расход, т", "Vпод", "Vобр", "Vпод[м]", "Vобр[м]",
-			"Vпод [м]", "Vобр [м]");
+			"Vпод [м]", "Vобр [м]" , "Объемный расход");
 
 	private static List<String> dbParamName = Arrays.asList("Дата", "Q", "нет", "V1", "V2", "нет", "T1", "T2", "T3",
 			"p1", "p2", "Time", "Дата", "Q", "нет", "нет", "T3", "нет", "Time",
@@ -70,7 +70,7 @@ public class Type3 {
 			"Дата", "Q", "G1", "G2", "нет", "нет", "T1", "T2", "p1",
 			"p2", "Time", "нет", "Дата", "нет", "нет", "G1", "Q", "G1", "G2",
 			"нет", "нет", "Time", "нет", "G1", "G2", "Time", "G1", "G1", "G1", "V1",
-			"V2", "V1", "V2", "V1", "V2");
+			"V2", "V1", "V2", "V1", "V2", "нет");
 
 	private static List<String> dbParamNameIntegr = Arrays.asList("Дата", "Q", "нет", "V1", "V2", "нет", "T1", "T2", "T3",
 			"p1", "p2", "Time", "Дата", "Q", "нет", "нет", "T3", "нет", "Time",
@@ -80,7 +80,7 @@ public class Type3 {
 			"Дата", "Q", "G1", "G2", "нет", "нет", "T1", "T2", "p1",
 			"p2", "Time", "нет", "Дата", "нет", "нет", "G1", "Q", "G1", "G2",
 			"нет", "нет", "Time", "нет", "G1", "G2", "Time", "G1", "G1", "G1", "V1",
-			"V2", "V1", "V2", "V1", "V2");
+			"V2", "V1", "V2", "V1", "V2", "V1");
 
 	private static final Map<String, AbstractMap.SimpleEntry<String, String>> JOIN_PARAM_NAMES;
 
@@ -388,18 +388,22 @@ public class Type3 {
 		//Объединяем колонки значений и шапки
 		pdfTable.columnRanges.clear();
 		pdfTable.columnRanges.addAll(dataColumnRanges);
-		for (Range<Integer> rangeHead : headColumnRanges) {
-			boolean connected = false;
-			for (Range<Integer> rangeData : dataColumnRanges) {
-				if (rangeHead.isConnected(rangeData)) {
-					connected = true;
-					break;
+		// Если количество колонок не совпадает, то пытаемся получить колонки на основе колонок шапки
+		if (dataColumnRanges.size() != headColumnRanges.size()) {
+			for (Range<Integer> rangeHead : headColumnRanges) {
+				boolean connected = false;
+				for (Range<Integer> rangeData : dataColumnRanges) {
+					if (rangeHead.isConnected(rangeData)) {
+						connected = true;
+						break;
+					}
+				}
+				if (!connected) {
+					pdfTable.columnRanges.add(Range.closed(rangeHead.lowerEndpoint(), rangeHead.upperEndpoint() + 5));
 				}
 			}
-			if (!connected) {
-				pdfTable.columnRanges.add(Range.closed(rangeHead.lowerEndpoint(), rangeHead.upperEndpoint() + 5));
-			}
 		}
+
 		TrapRangeBuilder lineTrapRangeBuilder = new TrapRangeBuilder();
 		pdfTable.columnRanges.forEach(lineTrapRangeBuilder::addRange);
 		pdfTable.columnRanges = lineTrapRangeBuilder.build();
