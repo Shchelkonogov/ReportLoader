@@ -19,7 +19,6 @@ public class Type7 {
     private static Logger logger = Logger.getLogger(Type7.class.getName());
 
     private static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-    private static DateTimeFormatter fYear = DateTimeFormatter.ofPattern("yyyy");
 
     private static List<String> remove = Arrays.asList("Прям.", "Обр.", "Количество", "тепловой", "энергии",
             "Расход", "теплоносителя", "Температура", "Гкал", "м.куб.", "час", "Время", "наработки",
@@ -98,12 +97,16 @@ public class Type7 {
         String endDate = pagePath.substring(pagePath.indexOf(" ") + 4);
         LocalDate date1;
         LocalDate date2;
-        String year;
+        int year;
         try {
             date1 = LocalDate.parse(endDate, formatter);
             date2 = LocalDate.parse(startDate, formatter);
-            if (fYear.format(date1).equals(fYear.format(date2))) {
-                year = fYear.format(date1);
+
+            // проверка на год. Если год совпадает в датах, то берем его,
+            //  если переход через год с 12 по 1 месяц, то берем предыдущий год
+            if ((date1.getYear() == date2.getYear()) ||
+                    ((date2.getMonthValue() == 12) && (date1.getMonthValue() == 1) && ((date1.getYear() - date2.getYear()) == 1))) {
+                year = date2.getYear();
             } else {
                 throw new ParseException("parse year exception");
             }
