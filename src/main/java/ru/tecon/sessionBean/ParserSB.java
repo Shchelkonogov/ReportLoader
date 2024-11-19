@@ -142,10 +142,10 @@ public class ParserSB implements ParserLocal {
 
                 date = data.getParamIntegr().get(0).getData().get(0);
                 for (ParameterData item: data.getParamIntegr()) {
-                    if (item.getName().equals("Qi")) {
+                    if (item.getName().equals("Q")) {
                         qi = item.getData().get(0);
                     }
-                    if (item.getName().equals("Timei")) {
+                    if (item.getName().equals("Time")) {
                         timei = item.getData().get(0);
                     }
                 }

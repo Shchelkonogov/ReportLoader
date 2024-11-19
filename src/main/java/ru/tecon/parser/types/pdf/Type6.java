@@ -560,7 +560,7 @@ public class Type6 {
 		}
 
 		ParserUtils.updateValue("Time", reportData.getParam(), 3600);
-		ParserUtils.updateValue("Timei", reportData.getParamIntegr(), 3600);
+		ParserUtils.updateValue("Time", reportData.getParamIntegr(), 3600);
 		ParserUtils.updateValue("p1", reportData.getParam(), 0.101325f);
 		ParserUtils.updateValue("p2", reportData.getParam(), 0.101325f);
 		ParserUtils.updateValue("p3", reportData.getParam(), 0.101325f);
